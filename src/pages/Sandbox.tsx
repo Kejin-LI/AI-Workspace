@@ -858,9 +858,9 @@ export function Sandbox() {
     
     if ((!promptText.trim() && selectedKnowledgeDocs.length === 0) || isGenerating) return;
     
-    // Save real user input to localStorage for the sidebar history
+    // Save real user input to localStorage for the sidebar history ONLY IF it's the first message in this chat session
     try {
-      if (promptText.trim()) {
+      if (promptText.trim() && messages.filter(m => m.role === 'user').length === 0) {
         const storedHistory = localStorage.getItem('chatHistory');
         let historyArray = [];
         if (storedHistory) {
