@@ -126,6 +126,7 @@ export function Header() {
     if (path.includes('/expert/leaderboard')) return '模型榜单';
     if (path.includes('/expert/labeling')) return t.expert.sidebar.labeling;
     if (path.includes('/expert/community')) return t.expert.sidebar.community;
+    if (path.includes('/expert/knowledge') || path.includes('/notebook')) return '知识库';
     if (path.includes('/expert/challenges')) return t.expert.sidebar.challenges;
     if (path.includes('/expert/profile')) return '个人中心';
     if (path.includes('/expert/sandbox')) return t.expert.sandbox.guidedMode;
@@ -146,7 +147,7 @@ export function Header() {
            <div className="flex items-center gap-2">
              <button 
                onClick={() => {
-                 if (location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare') {
+                 if (location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare' || location.state?.mode === 'roundtable') {
                    navigate('/expert/workbench');
                  } else {
                    // Keep the task state when returning, and make sure we use the ID to persist the state
@@ -167,7 +168,9 @@ export function Header() {
                    ? (location.state?.prompt?.substring(0, 15) + (location.state?.prompt?.length > 15 ? '...' : '') || '擂台模式')
                    : location.state?.mode === 'compare'
                      ? (location.state?.prompt?.substring(0, 15) + (location.state?.prompt?.length > 15 ? '...' : '') || '对比模式')
-                     : (location.state?.task?.title || '生物HLE评测集构建')
+                     : location.state?.mode === 'roundtable'
+                       ? (location.state?.prompt?.substring(0, 15) + (location.state?.prompt?.length > 15 ? '...' : '') || '圆桌讨论')
+                       : (location.state?.task?.title || '生物HLE评测集构建')
                }
              </span>
            </div>
@@ -185,16 +188,16 @@ export function Header() {
         {actions}
         
         {/* User Stats & Profile (Expert only) */}
-        {location.pathname.startsWith('/expert') && (
+        {(location.pathname.startsWith('/expert') || location.pathname.startsWith('/notebook')) && (
           <div className="flex items-center gap-4">
-            {location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'free' && location.state?.mode !== 'arena' && location.state?.mode !== 'compare' ? (
+            {location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'free' && location.state?.mode !== 'arena' && location.state?.mode !== 'compare' && location.state?.mode !== 'roundtable' ? (
               <div className="flex items-center bg-white rounded-full px-4 py-1.5 h-9 shadow-sm border border-gray-100">
                 <Clock className="w-4 h-4 text-gray-500 mr-2" />
                 <span className="font-mono font-medium text-gray-900">{formatTime(elapsedTime)}</span>
               </div>
             ) : (
               <>
-                {location.pathname.includes('/expert/sandbox') && (location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare') && (
+                {location.pathname.includes('/expert/sandbox') && (location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare' || location.state?.mode === 'roundtable') && (
                   <div className="relative" ref={shareMenuRef}>
                     <button 
                       onClick={() => setShowShareMenu(!showShareMenu)}

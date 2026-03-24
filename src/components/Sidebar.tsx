@@ -11,7 +11,8 @@ import {
   ChevronLeft,
   History,
   ExternalLink,
-  MoreHorizontal
+  MoreHorizontal,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
@@ -50,6 +51,7 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
   const sidebarItems = [
     { icon: ShoppingBag, label: '任务大厅', path: '/expert', end: true },
     { icon: MessagesSquare, label: '专家社区', path: '/expert/community' },
+    { icon: BookOpen, label: '知识库', path: '/expert/knowledge' },
     { icon: User, label: '个人中心', path: '/expert/profile' },
   ];
 

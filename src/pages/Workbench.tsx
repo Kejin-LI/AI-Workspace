@@ -18,6 +18,7 @@ import {
   GraduationCap,
   FlaskConical,
   Stethoscope,
+  Users,
   BookOpen,
   MoreHorizontal,
   TrendingUp,
@@ -226,7 +227,25 @@ export function Workbench() {
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [showError, setShowError] = useState(false);
-  const [mode, setMode] = useState<'arena' | 'single' | 'compare'>('single');
+  const [mode, setMode] = useState<'arena' | 'single' | 'compare' | 'roundtable'>('roundtable');
+  const [showJournalDropdown, setShowJournalDropdown] = useState(false);
+  const journalButtonRef = useRef<HTMLButtonElement>(null);
+  const [journalButtonRect, setJournalButtonRect] = useState<DOMRect | null>(null);
+
+  useEffect(() => {
+    if (showJournalDropdown && journalButtonRef.current) {
+      const updateRect = () => {
+        setJournalButtonRect(journalButtonRef.current?.getBoundingClientRect() || null);
+      };
+      updateRect();
+      window.addEventListener('scroll', updateRect, true);
+      window.addEventListener('resize', updateRect);
+      return () => {
+        window.removeEventListener('scroll', updateRect, true);
+        window.removeEventListener('resize', updateRect);
+      };
+    }
+  }, [showJournalDropdown]);
   const [queryMode, setQueryMode] = useState<'simple' | 'expert' | 'thought'>('expert');
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedSubject, setSelectedSubject] = useState<string>('自然科学');
@@ -524,15 +543,32 @@ export function Workbench() {
           <div className="relative bg-white rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] transition-all">
             
               <div className="flex items-center gap-1 border-b border-gray-100 px-6 pt-4 relative">
-              <button 
-                onClick={() => setMode('single')}
+                <button 
+                  onClick={() => setMode('roundtable')}
+                  className={cn(
+                    "flex items-center gap-2 pb-3 px-2 text-sm font-bold transition-all relative",
+                    mode === 'roundtable' ? "text-blue-600" : "text-gray-500 hover:text-blue-500"
+                  )}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Sparkles className={cn("w-4 h-4", mode === 'roundtable' ? "text-blue-600" : "text-gray-400")} />
+                    圆桌沙盒 (辩论)
+                    <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm -ml-0.5 transform -translate-y-1">BETA</span>
+                  </div>
+                  {mode === 'roundtable' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600 rounded-full shadow-[0_-1px_4px_rgba(37,99,235,0.5)]"></div>}
+                </button>
+                
+                <div className="w-px h-4 bg-gray-200 mx-2 mb-3"></div>
+
+                <button 
+                  onClick={() => setMode('single')}
                   className={cn(
                     "flex items-center gap-2 pb-3 px-2 text-sm font-medium transition-all relative",
                     mode === 'single' ? "text-slate-900" : "text-gray-400 hover:text-gray-600"
                   )}
                 >
                   经典模式 (单挑)
-                  {mode === 'single' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></div>}
+                  {mode === 'single' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-800 rounded-full"></div>}
                 </button>
                 
                 <div className="w-px h-4 bg-gray-200 mx-2 mb-3"></div>
@@ -545,7 +581,7 @@ export function Workbench() {
                   )}
                 >
                   对比模式 (明牌)
-                  {mode === 'compare' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></div>}
+                  {mode === 'compare' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-800 rounded-full"></div>}
                 </button>
 
                 <div className="w-px h-4 bg-gray-200 mx-2 mb-3"></div>
@@ -558,7 +594,7 @@ export function Workbench() {
                   )}
                 >
                   擂台模式 (盲测)
-                  {mode === 'arena' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></div>}
+                  {mode === 'arena' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-800 rounded-full"></div>}
                 </button>
 
               {/* Privacy Info Icon at Top Right */}
@@ -679,7 +715,9 @@ export function Workbench() {
                         ? '工作遇到什么难题了？调用2个顶尖大模型来匿名对战吧！\n输入 @ 快速引用你的数字分身和专属知识库文档'
                         : mode === 'compare'
                           ? '工作遇到什么难题了？选择2个你最信任的大模型进行明牌对比！\n输入 @ 快速引用你的数字分身和专属知识库文档'
-                          : '工作遇到什么难题了？快把那些让头发掉光的学术问题扔给我！\n输入 @ 快速引用你的数字分身和专属知识库文档'
+                          : mode === 'roundtable'
+                            ? '抛出一个具有争议性的话题，看看多位 AI 专家如何为你展开深度辩论！\n输入 @ 快速引用你的数字分身和专属知识库文档'
+                            : '工作遇到什么难题了？快把那些让头发掉光的学术问题扔给我！\n输入 @ 快速引用你的数字分身和专属知识库文档'
                   }
                   className="flex-1 h-24 resize-none outline-none text-gray-700 placeholder-gray-300 bg-transparent text-sm leading-relaxed py-1.5"
                 />
@@ -960,30 +998,145 @@ export function Workbench() {
                   )}
 
                   {/* Skill Selector */}
-                  <div className="relative">
-                    <div className="relative">
+                  <div className="relative shrink-0 flex items-center gap-2">
+                    {mode === 'roundtable' && (
+                      <>
+                        <button
+                          ref={filterButtonRef}
+                          onClick={(e) => { e.stopPropagation(); setShowFilterDropdown(!showFilterDropdown); setShowJournalDropdown(false); }}
+                          className={cn(
+                            "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm transition-all border",
+                            showFilterDropdown 
+                              ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm" 
+                              : "bg-white text-slate-700 border-gray-200 hover:border-blue-200 hover:text-blue-600"
+                          )}
+                        >
+                          <Users className="w-4 h-4" />
+                          <span>辩论角色分配</span>
+                          <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showFilterDropdown ? "rotate-180" : "")} />
+                        </button>
+
+                        {showFilterDropdown && filterButtonRect && createPortal(
+                          <div 
+                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                            style={{
+                              top: filterButtonRect.bottom + 8,
+                              left: filterButtonRect.left,
+                            }}
+                          >
+                            <div className="w-[600px] p-6 bg-white rounded-xl shadow-xl border border-gray-100">
+                              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                                  <Users className="w-5 h-5 text-blue-600" />
+                                  沙盒角色分配 (RL Environment)
+                                </h3>
+                                <button onClick={() => setShowFilterDropdown(false)} className="text-gray-400 hover:text-gray-600">
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                              
+                              <div className="space-y-4">
+                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center">
+                                        <Cpu className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className="font-semibold text-sm text-slate-800">环境模拟器 (Patient)</span>
+                                    </div>
+                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
+                                      <option>Llama 3 (推荐)</option>
+                                      <option>Claude 3.5</option>
+                                    </select>
+                                  </div>
+                                  <p className="text-xs text-slate-500 pl-8">扮演客观环境或用户，提供模糊的初始反馈，不主动给出答案。</p>
+                                </div>
+
+                                <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center">
+                                        <AlertCircle className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className="font-semibold text-sm text-rose-800">规则护栏 (Challenger)</span>
+                                    </div>
+                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
+                                      <option>Claude 3.5 (推荐)</option>
+                                      <option>GPT-4</option>
+                                    </select>
+                                  </div>
+                                  <p className="text-xs text-rose-600/80 pl-8">扮演伦理审查员或安全护栏，对测试模型进行极其苛刻的挑刺和漏洞挖掘。</p>
+                                </div>
+
+                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                                        <Rocket className="w-3.5 h-3.5" />
+                                      </div>
+                                      <span className="font-semibold text-sm text-emerald-800">被测模型 (Target AI)</span>
+                                    </div>
+                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
+                                      <option>GPT-4 (待测)</option>
+                                      <option>Gemini Pro (待测)</option>
+                                    </select>
+                                  </div>
+                                  <p className="text-xs text-emerald-600/80 pl-8">试图在沙盒中完成任务，同时应对模拟器和护栏的双重压力。</p>
+                                </div>
+                                
+                                <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+                                  <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <Info className="w-3.5 h-3.5" />
+                                    您将作为<strong className="text-gray-700">大法官 (Adjudicator)</strong>在讨论中发放最终奖励。
+                                  </div>
+                                  <button 
+                                    onClick={() => setShowFilterDropdown(false)}
+                                    className="px-4 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                                  >
+                                    确认配置
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="fixed inset-0 -z-10" onClick={() => setShowFilterDropdown(false)} />
+                          </div>,
+                          document.body
+                        )}
+                      </>
+                    )}
+
+                    {/* 始终显示国际期刊按钮，如果在圆桌模式下则作为独立的过滤按钮 */}
+                    <>
                       <button
-                        ref={filterButtonRef}
-                        onClick={() => setShowFilterDropdown(!showFilterDropdown)}
+                        ref={mode !== 'roundtable' ? filterButtonRef : journalButtonRef}
+                        onClick={(e) => { 
+                          if (mode === 'roundtable') {
+                             e.stopPropagation(); 
+                             setShowJournalDropdown(!showJournalDropdown);
+                             setShowFilterDropdown(false);
+                          } else {
+                             setShowFilterDropdown(!showFilterDropdown);
+                          }
+                        }}
                         aria-label="filter-button"
                         className={cn(
                           "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm transition-all border",
-                          showFilterDropdown 
+                          (mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)
                             ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm" 
                             : "bg-white text-slate-700 border-gray-200 hover:border-blue-200 hover:text-blue-600"
                         )}
                       >
                         <BookOpen className="w-4 h-4" />
                         <span>{selectedJournalDb}</span>
-                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showFilterDropdown ? "rotate-180" : "")} />
+                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", ((mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)) ? "rotate-180" : "")} />
                       </button>
 
-                      {showFilterDropdown && filterButtonRect && createPortal(
+                      {((mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)) && (mode !== 'roundtable' ? filterButtonRect : journalButtonRect) && createPortal(
                         <div 
                           className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
                           style={{
-                            top: filterButtonRect.bottom + 8,
-                            left: filterButtonRect.left,
+                            top: (mode !== 'roundtable' ? filterButtonRect : journalButtonRect)!.bottom + 8,
+                            left: (mode !== 'roundtable' ? filterButtonRect : journalButtonRect)!.left,
                           }}
                         >
                           <div className="w-[480px] p-6 bg-white rounded-xl shadow-xl border border-gray-100">
@@ -1061,12 +1214,15 @@ export function Workbench() {
                           {/* Overlay to close dropdown */}
                           <div 
                             className="fixed inset-0 -z-10" 
-                            onClick={() => setShowFilterDropdown(false)}
+                            onClick={() => {
+                              setShowFilterDropdown(false);
+                              setShowJournalDropdown(false);
+                            }}
                           />
                         </div>,
                         document.body
                       )}
-                    </div>
+                    </>
                   </div>
 
                   {/* Model Selector */}
@@ -1143,11 +1299,13 @@ export function Workbench() {
                     className={cn(
                       "w-11 h-11 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm",
                       (input.trim() || files.length > 0)
-                        ? "bg-black text-white hover:bg-slate-800 hover:scale-105 hover:shadow-md" 
+                        ? mode === 'roundtable' 
+                          ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:shadow-lg hover:scale-105" 
+                          : "bg-black text-white hover:bg-slate-800 hover:scale-105 hover:shadow-md" 
                         : "bg-gray-100 text-gray-300 cursor-not-allowed"
                     )}
                   >
-                    <Send className="w-5 h-5 ml-0.5" />
+                    {mode === 'roundtable' ? <Sparkles className="w-5 h-5 ml-0.5" /> : <Send className="w-5 h-5 ml-0.5" />}
                   </button>
                   {(!input.trim() && files.length === 0) && (
                     <div className={cn(

@@ -801,41 +801,8 @@ export function Community() {
           
           {/* Left Column: Feed */}
           <div>
-            {/* Tabs */}
-            <div className="flex items-center gap-8 border-b border-gray-100 mb-6 pb-2">
-              <button 
-                onClick={() => setActiveTab('recommend')}
-                className={cn(
-                  "pb-3 text-base font-medium transition-colors relative",
-                  activeTab === 'recommend' ? "text-black" : "text-gray-500 hover:text-gray-900"
-                )}
-              >
-                正在讨论
-                {activeTab === 'recommend' && (
-                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-black rounded-t-full"></span>
-                )}
-              </button>
-              <button 
-                onClick={() => setActiveTab('knowledge')}
-                className={cn(
-                  "pb-3 text-base font-medium transition-colors relative",
-                  activeTab === 'knowledge' ? "text-black" : "text-gray-500 hover:text-gray-900"
-                )}
-              >
-                知识库
-                {activeTab === 'knowledge' && (
-                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 w-6 h-0.5 bg-black rounded-t-full"></span>
-                )}
-              </button>
-            </div>
-            
-            {activeTab === 'knowledge' ? (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                <KnowledgeBaseView type="public" />
-              </div>
-            ) : (
-              <>
-                <div className="text-xs text-gray-400 mb-6 flex items-center gap-1">
+            {/* Feed Filter */}
+            <div className="flex items-center justify-between mb-6">
                   以下内容根据你选择的专业领域进行推荐，可在<button onClick={() => {
                     navigate('/expert/profile');
                     setTimeout(() => {
@@ -949,8 +916,6 @@ export function Community() {
                     </div>
                   </div>
                 )}
-              </>
-            )}
           </div>
 
           {/* Right Column: Sidebar */}

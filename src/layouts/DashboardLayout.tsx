@@ -17,8 +17,8 @@ export function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground flex">
-      {/* 在自由模式/擂台模式/对比模式（新对话）和非沙盒页面显示 Sidebar，任务答题页面隐藏 Sidebar */}
-      {(!location.pathname.includes('/expert/sandbox') || location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare') && (
+      {/* 在自由模式/擂台模式/对比模式/圆桌讨论（新对话）和非沙盒页面显示 Sidebar，任务答题页面隐藏 Sidebar */}
+      {(!location.pathname.includes('/expert/sandbox') || location.state?.mode === 'free' || location.state?.mode === 'arena' || location.state?.mode === 'compare' || location.state?.mode === 'roundtable') && (
         <Sidebar 
           isCollapsed={isSidebarCollapsed} 
           toggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
@@ -26,9 +26,9 @@ export function DashboardLayout() {
       )}
       <div className={cn(
         "flex-1 flex flex-col min-w-0 transition-all duration-300 h-screen",
-        (location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'free' && location.state?.mode !== 'arena' && location.state?.mode !== 'compare')
+        (location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'free' && location.state?.mode !== 'arena' && location.state?.mode !== 'compare' && location.state?.mode !== 'roundtable')
           ? "pl-0"
-          : isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+          : isSidebarCollapsed ? "pl-20" : "pl-64"
       )}>
         <Header />
         <main className={cn(

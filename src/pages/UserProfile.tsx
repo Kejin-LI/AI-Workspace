@@ -23,7 +23,8 @@ import {
   Upload,
   Plus,
   ShieldAlert,
-  X
+  X,
+  BookOpen
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { KnowledgeBaseView } from '../components/KnowledgeBaseView';
@@ -976,9 +977,18 @@ export function UserProfile() {
               </div>
             </div>
 
-            <div id="personal-knowledge-base" className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1 scroll-mt-6">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">个人知识库</h3>
-              <KnowledgeBaseView type="personal" />
+            <div id="personal-knowledge-base" className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1 scroll-mt-6 flex flex-col items-center justify-center text-center py-12">
+              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
+                <BookOpen className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">知识库已升级</h3>
+              <p className="text-gray-500 mb-6 max-w-sm">您的个人知识库已迁移至专属的独立工作区，支持分栏阅读和沉浸式对话分析。</p>
+              <button 
+                onClick={() => window.location.href = '/expert/knowledge'}
+                className="px-6 py-2.5 bg-black text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
+              >
+                前往知识库工作区
+              </button>
             </div>
 
             <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">

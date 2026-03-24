@@ -8,7 +8,7 @@ import { HeaderActionsProvider } from './contexts/HeaderActionsContext'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <LanguageProvider>
         <HeaderActionsProvider>
           <App />

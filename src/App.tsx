@@ -8,6 +8,8 @@ import { Market } from './pages/Market';
 import { Community } from './pages/Community';
 import { Sandbox } from './pages/Sandbox';
 import { UserProfile } from './pages/UserProfile';
+import { KnowledgeBasePage } from './pages/KnowledgeBasePage';
+import { NotebookPage } from './pages/NotebookPage';
 import { RequesterDashboard } from './pages/RequesterDashboard';
 import { RequesterTasks } from './pages/RequesterTasks';
 import { RequesterProjects } from './pages/RequesterProjects';
@@ -30,6 +32,9 @@ function App() {
         {/* Public Landing Page */}
         <Route path="/" element={<LandingPage />} />
 
+        {/* Notebook Route */}
+        <Route path="/notebook/:folderId" element={<NotebookPage />} />
+
         {/* Requester Routes (Demand Side) */}
         <Route path="/requester" element={<RequesterLayout />}>
           <Route index element={<RequesterDashboard />} />
@@ -47,6 +52,7 @@ function App() {
           <Route path="sandbox" element={<Sandbox />} />
           <Route path="market" element={<Market />} />
           <Route path="community" element={<Community />} />
+          <Route path="knowledge" element={<KnowledgeBasePage />} />
           <Route path="profile" element={<UserProfile />} />
           <Route path="challenges" element={<Placeholder title="Prestige Challenges" />} />
           <Route path="settings" element={<Placeholder title="Settings" />} />
