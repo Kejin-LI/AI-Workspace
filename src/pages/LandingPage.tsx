@@ -75,8 +75,10 @@ export function LandingPage() {
               </button>
             </div>
             <form onSubmit={handleVerify} className="p-6 space-y-4">
-              <p className="text-sm text-gray-500 mb-4">
-                当前为内部测试 Demo 阶段，仅对受邀专家开放。请输入访问密码：
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                🤫 嘘... 你是来打探商业机密的吗？<br />
+                当前为内部测试 Demo 阶段，仅对受邀专家开放。<br />
+                如有需要请联系：<a href="mailto:likejin2019@gmail.com" className="text-blue-600 hover:underline">likejin2019@gmail.com</a>
               </p>
               <div>
                 <input
