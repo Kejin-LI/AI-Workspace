@@ -25,6 +25,14 @@ const Placeholder = ({ title }: { title: string }) => (
   </div>
 );
 
+const ProtectedExpertRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = localStorage.getItem('admin_authenticated') === 'true';
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <ProjectProvider>
@@ -45,7 +53,7 @@ function App() {
         </Route>
 
         {/* Expert Routes (Supply Side) */}
-        <Route path="/expert" element={<DashboardLayout />}>
+        <Route path="/expert" element={<ProtectedExpertRoute><DashboardLayout /></ProtectedExpertRoute>}>
           <Route index element={<TaskHall />} />
           <Route path="workbench" element={<Workbench />} />
           <Route path="leaderboard" element={<ModelLeaderboard />} />

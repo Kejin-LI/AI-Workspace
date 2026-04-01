@@ -802,13 +802,15 @@ export function Community() {
           {/* Left Column: Feed */}
           <div>
             {/* Feed Filter */}
-            <div className="flex items-center justify-between mb-6">
-                  以下内容根据你选择的专业领域进行推荐，可在<button onClick={() => {
+            <div className="flex items-center mb-6 text-sm text-gray-600">
+                  <span>以下内容根据你选择的专业领域进行推荐，可在</span>
+                  <button onClick={() => {
                     navigate('/expert/profile');
                     setTimeout(() => {
                       document.getElementById('platform-verification')?.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
-                  }} className="text-black hover:underline px-1 font-medium">个人中心</button>调整
+                  }} className="text-blue-600 hover:underline px-1 font-medium">个人中心</button>
+                  <span>调整</span>
                 </div>
 
                 {/* Feed List */}

@@ -62,8 +62,13 @@ export function Sidebar({ isCollapsed, toggleSidebar }: SidebarProps) {
     )}>
       {/* Logo Area */}
       <div className={cn("h-20 flex items-center", isCollapsed ? "justify-center px-0" : "px-6")}>
-        <NavLink to="/" className="flex items-center hover:opacity-80 transition-opacity">
-          <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-black/20 shrink-0">TA</div>
+          <NavLink to="/" className="flex items-center group/logo hover:opacity-90 transition-opacity">
+            <div className="w-10 h-10 rounded-xl bg-black flex items-center justify-center shadow-lg shadow-black/20 shrink-0 relative overflow-hidden group-hover/logo:scale-[1.05] group-hover/logo:rotate-3 transition-all duration-300">
+              <svg className="w-[18px] h-[18px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 4L4 18H20L12 4Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
+                <circle cx="12" cy="13" r="3.5" fill="#3B82F6"/>
+              </svg>
+            </div>
           {!isCollapsed && (
             <div className="flex flex-col ml-3 overflow-hidden">
               <span className="text-xl font-bold text-slate-900 tracking-tight leading-none whitespace-nowrap">TuringArena</span>

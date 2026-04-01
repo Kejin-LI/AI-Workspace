@@ -53,12 +53,24 @@ import {
   MessageSquare,
   User,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Lightbulb,
+  Check,
+  Target,
+  Terminal,
+  Code2,
+  Database,
+  Globe,
+  FileCode2,
+  Loader2,
+  Compass,
+  Crosshair
 } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
 import { HLE_TASK_DATA } from '../data/hleTask';
+import { ExpertCopilotSidebar } from '../components/ExpertCopilotSidebar';
 
 // Mock File Card Component
 const FileCard = ({ name, size, type }: { name: string; size: string; type: 'doc' | 'docx' | 'pdf' }) => (
@@ -325,6 +337,60 @@ export function Sandbox() {
 
   // Auto-advance thinking steps
   useEffect(() => {
+    const handleSelection = () => {
+      // Small timeout to let the selection finish updating
+      setTimeout(() => {
+        const selection = window.getSelection();
+        if (!selection || selection.isCollapsed) {
+          setSelectionPopover(null);
+          return;
+        }
+
+        const text = selection.toString().trim();
+        if (!text) {
+          setSelectionPopover(null);
+          return;
+        }
+
+        if (selection.rangeCount === 0) return;
+        
+        const range = selection.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        
+        // Only show if the selection is inside the roundtable container
+        const roundtableContainer = document.getElementById('roundtable-container');
+        if (roundtableContainer && roundtableContainer.contains(range.commonAncestorContainer)) {
+          // Find closest model message to get model name
+          let modelName = '';
+          let el: HTMLElement | null = range.commonAncestorContainer as HTMLElement;
+          if (el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+          
+          while (el && el !== roundtableContainer) {
+            if (el.hasAttribute('data-model-name')) {
+              modelName = el.getAttribute('data-model-name') || '';
+              break;
+            }
+            el = el.parentElement;
+          }
+
+          setSelectionPopover({
+            visible: true,
+            x: rect.left + rect.width / 2,
+            y: rect.bottom + 8, // a little below the selection
+            text,
+            modelName
+          });
+        } else {
+          setSelectionPopover(null);
+        }
+      }, 10);
+    };
+
+    document.addEventListener('mouseup', handleSelection);
+    return () => document.removeEventListener('mouseup', handleSelection);
+  }, []);
+
+  useEffect(() => {
     if (isThinkingExpanded && location.state?.mode !== 'arena') {
         if (thinkingStep === 0) {
             setThinkingStep(1);
@@ -554,6 +620,20 @@ export function Sandbox() {
   const [mentionPosition, setMentionPosition] = useState({ top: 0, left: 0 });
   const [selectedKnowledgeDocs, setSelectedKnowledgeDocs] = useState<Array<{id: string, name: string}>>([]);
   const [files, setFiles] = useState<Array<{name: string, url?: string}>>([]);
+  const [selectionPopover, setSelectionPopover] = useState<{
+    visible: boolean;
+    x: number;
+    y: number;
+    text: string;
+    modelName?: string;
+  } | null>(null);
+  const [quote, setQuote] = useState<{ text: string; modelName: string } | null>(null);
+  const [showWeaknessPopup, setShowWeaknessPopup] = useState(false);
+  const [weaknessPopupModels, setWeaknessPopupModels] = useState<string[]>([]);
+  const [activeWeaknessTab, setActiveWeaknessTab] = useState<string | null>(null);
+  const [likedMessages, setLikedMessages] = useState<Record<string, boolean>>({});
+  const [activeSandboxTab, setActiveSandboxTab] = useState<'follow' | 'editor' | 'browser'>('follow');
+  const [highlightedSandboxStep, setHighlightedSandboxStep] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const KNOWLEDGE_DOCS = [
@@ -569,6 +649,21 @@ export function Sandbox() {
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setInput(val);
+
+    // Check for model mentions for weakness popup
+    const modelMatches = Array.from(val.matchAll(/@(GPT-4|Claude 3\.5|Llama 3)/gi)).map(m => m[1]);
+    if (modelMatches.length > 0) {
+      // Get unique models
+      const uniqueModels = [...new Set(modelMatches)];
+      setWeaknessPopupModels(uniqueModels);
+      if (!activeWeaknessTab || !uniqueModels.includes(activeWeaknessTab)) {
+        setActiveWeaknessTab(uniqueModels[0]);
+      }
+    } else {
+      setWeaknessPopupModels([]);
+      setShowWeaknessPopup(false);
+      setActiveWeaknessTab(null);
+    }
 
     // Check for '@' symbol
     const cursorPosition = e.target.selectionStart;
@@ -866,6 +961,8 @@ export function Sandbox() {
     const promptText = typeof userPrompt === 'string' ? userPrompt : input;
     
     if ((!promptText.trim() && selectedKnowledgeDocs.length === 0) || isGenerating) return;
+    
+    setQuote(null); // Clear quote on send
     
     // Save real user input to localStorage for the sidebar history ONLY IF it's the first message in this chat session
     try {
@@ -2197,6 +2294,7 @@ export function Sandbox() {
                          <div className="flex items-center justify-between relative">
                             <div className="flex items-center gap-2">
                                {/* Query Mode Selector */}
+                               {location.state?.mode !== 'roundtable' && location.state?.mode !== 'battle' && (
                                <div 
                                   className="flex items-center bg-gray-100/80 rounded-full p-1 border border-gray-200/50 mr-2 relative"
                                   onMouseLeave={(e) => {
@@ -2268,10 +2366,11 @@ export function Sandbox() {
                                     </button>
                                   </div>
                                </div>
+                               )}
 
                                {/* Journal Selector */}
-                               {(taskStage as any) !== 'execution' && (
-                               <div className="relative">
+                                  {(taskStage as any) !== 'execution' && location.state?.mode !== 'roundtable' && location.state?.mode !== 'battle' && (
+                                  <div className="relative">
                                   <button
                                     ref={filterButtonRef}
                                     onClick={(e) => { e.stopPropagation(); setShowFilterDropdown(!showFilterDropdown); }}
@@ -2355,8 +2454,8 @@ export function Sandbox() {
                                )}
 
                                {/* Skill/Model Selector */}
-                               {(taskStage as any) !== 'execution' && (
-                               <div className="relative">
+                                  {(taskStage as any) !== 'execution' && location.state?.mode !== 'roundtable' && location.state?.mode !== 'battle' && (
+                                  <div className="relative">
                                   {!selectedSkill ? (
                                      <div className="relative">
                                         <button 
@@ -2415,22 +2514,26 @@ export function Sandbox() {
                                      </div>
                                   ) : null}
                                </div>
-                               )}
+                                )}
 
-                               {/* File Upload */}
-                               <input 
-                                  type="file" 
-                                  ref={fileInputRef} 
-                                  className="hidden" 
-                                  multiple 
-                               />
-                               <button 
-                                  onClick={() => fileInputRef.current?.click()}
-                                  className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
-                               >
-                                  <Paperclip className="w-4 h-4" />
-                               </button>
-                            </div>
+                                {/* File Upload */}
+                                     {location.state?.mode !== 'roundtable' && location.state?.mode !== 'battle' && inputMode !== 'battle' && (
+                                     <div className="flex items-center">
+                                   <input 
+                                      type="file" 
+                                      ref={fileInputRef} 
+                                      className="hidden" 
+                                      multiple 
+                                   />
+                                   <button 
+                                      onClick={() => fileInputRef.current?.click()}
+                                      className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all"
+                                   >
+                                      <Paperclip className="w-4 h-4" />
+                                   </button>
+                                </div>
+                                )}
+                             </div>
 
                             <button 
                               onClick={handleSend}
@@ -3003,8 +3106,9 @@ export function Sandbox() {
           </div>
 
           {/* Chat Timeline */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-white max-w-5xl mx-auto w-full">
-            {/* User Initial Message */}
+          <div className="flex-1 flex overflow-hidden">
+            <div id="roundtable-container" className="flex-1 overflow-y-auto p-6 space-y-6 bg-white border-r border-gray-100">
+              {/* User Initial Message */}
             <div className="flex flex-col items-end">
               <div className="flex items-center gap-2 mb-1">
                 <span className="text-xs font-medium text-gray-500">我 (主持人)</span>
@@ -3015,13 +3119,29 @@ export function Sandbox() {
             </div>
 
             {/* Model A Response */}
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2 mb-1 ml-1">
-                <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Cpu className="w-3.5 h-3.5 text-blue-600" />
+            <div className="flex flex-col items-start group" data-model-name="GPT-4">
+              <div className="flex items-center gap-2 mb-1 ml-1 w-full max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Cpu className="w-3.5 h-3.5 text-blue-600" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-700">GPT-4 (易产生长文本幻觉)</span>
+                  <span className="text-[10px] text-gray-400">10:42 AM</span>
                 </div>
-                <span className="text-xs font-bold text-gray-700">GPT-4 (激进派)</span>
-                <span className="text-[10px] text-gray-400">10:42 AM</span>
+                <button 
+                  onClick={() => {
+                    setActiveSandboxTab('follow');
+                    setHighlightedSandboxStep('gpt4');
+                    setTimeout(() => {
+                      document.getElementById('sandbox-step-gpt4')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                    setTimeout(() => setHighlightedSandboxStep(null), 2000);
+                  }}
+                  className="ml-auto flex items-center gap-1 text-[11px] text-gray-400 hover:text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-gray-200 px-2 py-0.5 rounded-full shadow-sm"
+                >
+                  <Target className="w-3 h-3" />
+                  定位执行过程
+                </button>
               </div>
               <div className="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-tl-sm text-[15px] max-w-2xl leading-relaxed shadow-sm text-gray-800">
                 我认为最大的瓶颈在于<span className="font-bold text-blue-600">逻辑推理能力</span>。医疗诊断本质上是一个复杂的贝叶斯推理过程。虽然知识库可以无限扩充，但面对真实患者复杂的并发症、模糊的症状描述时，模型往往难以像人类医生那样进行多步的因果推断和假设检验。
@@ -3029,45 +3149,48 @@ export function Sandbox() {
               <div className="flex items-center gap-2 mt-2 ml-2">
                 <button 
                   onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@Claude 3.5 针对你的观点，我认为');
-                    textareaRef.current?.focus();
+                    setLikedMessages(prev => ({
+                      ...prev,
+                      'claude-msg-1': !prev['claude-msg-1']
+                    }));
                   }}
-                  className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
+                  className={cn(
+                    "text-xs flex items-center gap-1 border px-2 py-1 rounded-md shadow-sm transition-colors",
+                    likedMessages['claude-msg-1'] 
+                      ? "bg-orange-50 text-orange-600 border-orange-200" 
+                      : "bg-white text-gray-500 hover:text-orange-600 border-gray-200"
+                  )}
                 >
-                  <MessageSquareQuote className="w-3 h-3" />
-                  反驳它
-                </button>
-                <button 
-                  onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@Claude 3.5 我想补充一点：');
-                    textareaRef.current?.focus();
-                  }}
-                  className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
-                >
-                  <PlusCircle className="w-3 h-3" />
-                  补充观点
-                </button>
-                <button 
-                  onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@Claude 3.5 你的观点很有价值，可以作为最终结论。');
-                    textareaRef.current?.focus();
-                  }}
-                  className="text-xs text-gray-500 hover:text-orange-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
-                >
-                  <ThumbsUp className="w-3 h-3" />
-                  采纳为结论
+                  <ThumbsUp className={cn("w-3 h-3", likedMessages['claude-msg-1'] && "fill-current")} />
+                  采纳此观点
                 </button>
               </div>
             </div>
 
             {/* Model B Response */}
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2 mb-1 ml-1">
-                <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Cpu className="w-3.5 h-3.5 text-purple-600" />
+            <div className="flex flex-col items-start group" data-model-name="Claude 3.5">
+              <div className="flex items-center gap-2 mb-1 ml-1 w-full max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Cpu className="w-3.5 h-3.5 text-purple-600" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-700">Claude 3.5 (多约束条件易遗忘)</span>
+                  <span className="text-[10px] text-gray-400">10:43 AM</span>
                 </div>
-                <span className="text-xs font-bold text-gray-700">Claude 3.5 (保守派)</span>
-                <span className="text-[10px] text-gray-400">10:43 AM</span>
+                <button 
+                  onClick={() => {
+                    setActiveSandboxTab('follow');
+                    setHighlightedSandboxStep('claude');
+                    setTimeout(() => {
+                      document.getElementById('sandbox-step-claude')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                    setTimeout(() => setHighlightedSandboxStep(null), 2000);
+                  }}
+                  className="ml-auto flex items-center gap-1 text-[11px] text-gray-400 hover:text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-gray-200 px-2 py-0.5 rounded-full shadow-sm"
+                >
+                  <Target className="w-3 h-3" />
+                  定位执行过程
+                </button>
               </div>
               <div className="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-tl-sm text-[15px] max-w-2xl leading-relaxed shadow-sm text-gray-800">
                 <div className="mb-2 text-sm text-gray-500 bg-gray-50 p-2 rounded border-l-2 border-blue-400">
@@ -3078,34 +3201,30 @@ export function Sandbox() {
               <div className="flex items-center gap-2 mt-2 ml-2">
                 <button 
                   onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@GPT-4 针对你的观点，我认为');
-                    textareaRef.current?.focus();
+                    setLikedMessages(prev => ({
+                      ...prev,
+                      'gpt4-msg-1': !prev['gpt4-msg-1']
+                    }));
                   }}
-                  className="text-xs text-gray-500 hover:text-blue-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
+                  className={cn(
+                    "text-xs flex items-center gap-1 border px-2 py-1 rounded-md shadow-sm transition-colors",
+                    likedMessages['gpt4-msg-1'] 
+                      ? "bg-orange-50 text-orange-600 border-orange-200" 
+                      : "bg-white text-gray-500 hover:text-orange-600 border-gray-200"
+                  )}
                 >
-                  <MessageSquareQuote className="w-3 h-3" />
-                  反驳它
+                  <ThumbsUp className={cn("w-3 h-3", likedMessages['gpt4-msg-1'] && "fill-current")} />
+                  采纳此观点
                 </button>
-                <button 
-                  onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@GPT-4 我想补充一点：');
-                    textareaRef.current?.focus();
-                  }}
-                  className="text-xs text-gray-500 hover:text-green-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
-                >
-                  <PlusCircle className="w-3 h-3" />
-                  补充观点
-                </button>
-                <button 
-                  onClick={() => {
-                    setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@GPT-4 你的观点很有价值，可以作为最终结论。');
-                    textareaRef.current?.focus();
-                  }}
-                  className="text-xs text-gray-500 hover:text-orange-600 flex items-center gap-1 bg-white border border-gray-200 px-2 py-1 rounded-md shadow-sm transition-colors"
-                >
-                  <ThumbsUp className="w-3 h-3" />
-                  采纳为结论
-                </button>
+              </div>
+            </div>
+
+            {/* Round 1 Summary Request */}
+            <div className="flex flex-col items-center my-6">
+              <div className="bg-amber-50 border border-amber-200 px-6 py-3 rounded-full text-sm text-amber-800 shadow-sm flex items-center gap-3">
+                <AlertCircle className="w-4 h-4 text-amber-500" />
+                <span className="font-medium">第一回合辩论已完成，请主持人审核并进行阶段性总结</span>
+                <button className="bg-amber-100 hover:bg-amber-200 text-amber-700 px-3 py-1 rounded-md text-xs font-bold transition-colors ml-2">开始总结</button>
               </div>
             </div>
 
@@ -3121,12 +3240,28 @@ export function Sandbox() {
             </div>
             
             {/* Llama 3 Response (typing...) */}
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-2 mb-1 ml-1">
-                <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-                  <Cpu className="w-3.5 h-3.5 text-green-600" />
+            <div className="flex flex-col items-start group">
+              <div className="flex items-center gap-2 mb-1 ml-1 w-full max-w-2xl">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
+                    <Cpu className="w-3.5 h-3.5 text-green-600" />
+                  </div>
+                  <span className="text-xs font-bold text-gray-700">Llama 3 (易忽略极端竞态条件)</span>
                 </div>
-                <span className="text-xs font-bold text-gray-700">Llama 3 (总结者)</span>
+                <button 
+                  onClick={() => {
+                    setActiveSandboxTab('follow');
+                    setHighlightedSandboxStep('llama');
+                    setTimeout(() => {
+                      document.getElementById('sandbox-step-llama')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }, 100);
+                    setTimeout(() => setHighlightedSandboxStep(null), 2000);
+                  }}
+                  className="ml-auto flex items-center gap-1 text-[11px] text-gray-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity bg-white border border-gray-200 px-2 py-0.5 rounded-full shadow-sm"
+                >
+                  <Target className="w-3 h-3" />
+                  定位执行过程
+                </button>
               </div>
               <div className="bg-white border border-gray-200 px-5 py-4 rounded-2xl rounded-tl-sm text-[15px] max-w-2xl leading-relaxed shadow-sm text-gray-800 flex items-center gap-2">
                 <div className="flex gap-1">
@@ -3141,164 +3276,566 @@ export function Sandbox() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Bottom Input Area */}
-          <div className="p-4 bg-white border-t border-gray-100 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] relative">
-            <div className="relative border border-gray-200 rounded-xl bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all">
+          {/* Right Sandbox Panel for Agent Operation Tracking */}
+          <div className="flex-1 flex-shrink-0 bg-gray-50 flex flex-col h-full border-l border-gray-200 z-10 animate-in slide-in-from-right duration-300">
+            {/* Header Tab Bar */}
+            <div className="h-12 bg-gray-50 border-b border-gray-200 flex items-center px-2 shrink-0 overflow-x-auto custom-scrollbar">
+              <button
+                onClick={() => setActiveSandboxTab('follow')}
+                className={cn(
+                  "h-8 px-4 flex items-center gap-2 rounded-md transition-colors text-[13px] whitespace-nowrap",
+                  activeSandboxTab === 'follow' 
+                    ? "bg-white text-gray-900 font-bold shadow-sm border border-gray-200" 
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                <Crosshair className={cn(
+                  "w-3.5 h-3.5",
+                  activeSandboxTab === 'follow' ? "text-purple-600 animate-[spin_4s_linear_infinite]" : ""
+                )} />
+                实时跟随
+              </button>
+              
+              <div className="w-px h-4 bg-gray-200 mx-2 shrink-0"></div>
+              
+              <button
+                onClick={() => setActiveSandboxTab('editor')}
+                className={cn(
+                  "h-8 px-4 flex items-center gap-2 rounded-md transition-colors text-[13px] whitespace-nowrap",
+                  activeSandboxTab === 'editor' 
+                    ? "bg-white text-gray-900 font-bold shadow-sm border border-gray-200" 
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                <Code2 className="w-3.5 h-3.5 text-teal-600" />
+                编辑器
+              </button>
+
+              <button
+                onClick={() => setActiveSandboxTab('browser')}
+                className={cn(
+                  "h-8 px-4 ml-1 flex items-center gap-2 rounded-md transition-colors text-[13px] whitespace-nowrap",
+                  activeSandboxTab === 'browser' 
+                    ? "bg-white text-gray-900 font-bold shadow-sm border border-gray-200" 
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                <Compass className="w-3.5 h-3.5 text-blue-600" />
+                浏览器
+              </button>
+              
+              <button className="h-8 w-8 ml-1 flex items-center justify-center rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors shrink-0">
+                <Plus className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Sandbox Content */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-white">
+              {activeSandboxTab === 'follow' && (
+                <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
+                
+                {/* GPT-4 Operation */}
+                <div id="sandbox-step-gpt4" className="relative flex items-start gap-3 group transition-all duration-500">
+                  <div className={cn(
+                    "flex items-center justify-center w-6 h-6 rounded-full border-2 border-white shadow shrink-0 z-10 mt-1 relative transition-colors duration-500",
+                    highlightedSandboxStep === 'gpt4' ? "bg-blue-600 text-white ring-4 ring-blue-100" : "bg-blue-100 text-blue-600"
+                  )}>
+                    <Search className="w-3 h-3" />
+                  </div>
+                  <div className={cn(
+                    "flex-1 p-3 rounded-xl shadow-sm border transition-all duration-500",
+                    highlightedSandboxStep === 'gpt4' ? "bg-blue-50 border-blue-200 shadow-blue-100" : "bg-white border-gray-100"
+                  )}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">GPT-4 检索</span>
+                      <span className="text-[10px] text-gray-400">10:41:02</span>
+                    </div>
+                    <p className="text-xs text-gray-700 font-medium mb-1">搜索学术文献</p>
+                    <div className="text-[11px] text-gray-500 font-mono bg-white p-1.5 rounded border border-gray-100 truncate">
+                      query: "LLM medical diagnosis reasoning bottleneck"
+                    </div>
+                  </div>
+                </div>
+
+                {/* Claude Operation */}
+                <div id="sandbox-step-claude" className="relative flex items-start gap-3 group transition-all duration-500">
+                  <div className={cn(
+                    "flex items-center justify-center w-6 h-6 rounded-full border-2 border-white shadow shrink-0 z-10 mt-1 relative transition-colors duration-500",
+                    highlightedSandboxStep === 'claude' ? "bg-purple-600 text-white ring-4 ring-purple-100" : "bg-purple-100 text-purple-600"
+                  )}>
+                    <Database className="w-3 h-3" />
+                  </div>
+                  <div className={cn(
+                    "flex-1 p-3 rounded-xl shadow-sm border transition-all duration-500",
+                    highlightedSandboxStep === 'claude' ? "bg-purple-50 border-purple-200 shadow-purple-100" : "bg-white border-gray-100"
+                  )}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">Claude 3.5 检索</span>
+                      <span className="text-[10px] text-gray-400">10:42:15</span>
+                    </div>
+                    <p className="text-xs text-gray-700 font-medium mb-1">查询本地知识库</p>
+                    <div className="text-[11px] text-gray-500 font-mono bg-white p-1.5 rounded border border-gray-100 truncate">
+                      SELECT * FROM medical_guidelines WHERE topic='rare diseases'
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code Execution */}
+                <div id="sandbox-step-llama" className="relative flex items-start gap-3 group is-active transition-all duration-500">
+                  <div className={cn(
+                    "flex items-center justify-center w-6 h-6 rounded-full border-2 border-white shadow shrink-0 z-10 mt-1 relative transition-colors duration-500",
+                    highlightedSandboxStep === 'llama' ? "bg-green-600 text-white ring-4 ring-green-200 animate-none" : "bg-gray-100 text-gray-600 ring-4 ring-green-50 animate-pulse"
+                  )}>
+                    <Code2 className={cn("w-3 h-3", highlightedSandboxStep === 'llama' ? "text-white" : "text-green-600")} />
+                  </div>
+                  <div className={cn(
+                    "flex-1 p-3 rounded-xl shadow-sm border transition-all duration-500",
+                    highlightedSandboxStep === 'llama' ? "bg-gray-800 border-green-500 shadow-green-900/50" : "bg-gray-900 border-gray-800"
+                  )}>
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] font-bold text-gray-300 bg-gray-800 px-1.5 py-0.5 rounded flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        Llama 3 执行代码
+                      </span>
+                      <span className="text-[10px] text-gray-500">10:43:50</span>
+                    </div>
+                    <div className="text-[11px] text-green-400 font-mono mt-2 space-y-1">
+                      <div><span className="text-gray-500">$</span> python analyze_architecture.py</div>
+                      <div className="text-gray-400">Running simulation...</div>
+                      <div className="text-blue-300 flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                        Generating report
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+              )}
+              {activeSandboxTab === 'editor' && (
+                <div className="h-full flex items-center justify-center text-gray-400 flex-col gap-3">
+                  <Code2 className="w-8 h-8 opacity-20" />
+                  <p className="text-sm">编辑器尚未连接</p>
+                </div>
+              )}
+              {activeSandboxTab === 'browser' && (
+                <div className="h-full flex items-center justify-center text-gray-400 flex-col gap-3">
+                  <Compass className="w-8 h-8 opacity-20" />
+                  <p className="text-sm">浏览器尚未连接</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Selection Popover */}
+        <div className="p-4 bg-white border-t border-gray-100 z-20 shadow-[0_-4px_20px_rgba(0,0,0,0.02)] relative">
+            <div className="relative border border-gray-200 rounded-xl bg-gray-50 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all flex flex-col">
               {/* Internal Toolbar above the textarea */}
-              <div className="flex items-center justify-between p-3 border-b border-gray-100/50">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500 font-medium">指定发言：</span>
+              <div className="flex items-center justify-between p-3 border-b border-gray-100/50 shrink-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs text-gray-500 font-medium whitespace-nowrap">指定发言：</span>
                   <button 
                     onClick={() => {
                       setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@GPT-4 ');
+                      setWeaknessPopupModels(prev => {
+                        const newModels = Array.from(new Set([...prev, 'GPT-4']));
+                        if (!activeWeaknessTab) setActiveWeaknessTab('GPT-4');
+                        return newModels;
+                      });
                       textareaRef.current?.focus();
                     }}
-                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1 rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
+                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-colors shadow-sm"
                   >
                     @GPT-4
                   </button>
                   <button 
                     onClick={() => {
                       setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@Claude 3.5 ');
+                      setWeaknessPopupModels(prev => {
+                        const newModels = Array.from(new Set([...prev, 'Claude 3.5']));
+                        if (!activeWeaknessTab) setActiveWeaknessTab('Claude 3.5');
+                        return newModels;
+                      });
                       textareaRef.current?.focus();
                     }}
-                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1 rounded-full hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors shadow-sm"
+                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full hover:bg-purple-50 hover:text-purple-600 hover:border-purple-200 transition-colors shadow-sm"
                   >
                     @Claude 3.5
                   </button>
                   <button 
                     onClick={() => {
                       setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + '@Llama 3 ');
+                      setWeaknessPopupModels(prev => {
+                        const newModels = Array.from(new Set([...prev, 'Llama 3']));
+                        if (!activeWeaknessTab) setActiveWeaknessTab('Llama 3');
+                        return newModels;
+                      });
                       textareaRef.current?.focus();
                     }}
-                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-colors shadow-sm"
+                    className="text-xs bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full hover:bg-green-50 hover:text-green-600 hover:border-green-200 transition-colors shadow-sm"
                   >
                     @Llama 3
                   </button>
                 </div>
-                <button className="text-xs bg-blue-50 text-blue-600 border border-blue-200 px-4 py-1.5 rounded-full hover:bg-blue-100 transition-colors font-medium shadow-sm">
-                  一键生成总结报告
-                </button>
+                
+                {/* Dynamic Button (Weakness or Summary) */}
+                <div className="relative">
+                  {weaknessPopupModels.length > 0 && (
+                    <button 
+                      onClick={() => setShowWeaknessPopup(!showWeaknessPopup)}
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs border px-4 py-1.5 rounded-full transition-colors font-medium shadow-sm",
+                        showWeaknessPopup 
+                          ? "bg-red-50 text-red-600 border-red-200" 
+                          : "bg-white text-red-500 border-red-100 hover:bg-red-50"
+                      )}
+                    >
+                      <Target className="w-3.5 h-3.5" />
+                      查看 {weaknessPopupModels.length === 1 ? weaknessPopupModels[0] : `${weaknessPopupModels.length} 个模型`} 翻车点
+                    </button>
+                  )}
+
+                  {/* Weakness Popup */}
+                  {showWeaknessPopup && weaknessPopupModels.length > 0 && (
+                    <div className="absolute bottom-full right-0 mb-2 w-[340px] bg-white rounded-xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] border border-red-100 p-4 z-50 animate-in fade-in slide-in-from-bottom-2 duration-200">
+                      <div className="flex items-center justify-between mb-3 border-b border-gray-100 pb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 rounded-md bg-red-50 flex items-center justify-center">
+                            <Target className="w-3.5 h-3.5 text-red-500" />
+                          </div>
+                          <span className="font-bold text-gray-900 text-sm">高频翻车点</span>
+                        </div>
+                        <button onClick={() => setShowWeaknessPopup(false)} className="text-gray-400 hover:text-gray-600">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Model Tabs (only show if multiple models) */}
+                      {weaknessPopupModels.length > 1 && (
+                        <div className="flex gap-2 mb-4 overflow-x-auto custom-scrollbar pb-1">
+                          {weaknessPopupModels.map(model => (
+                            <button
+                              key={model}
+                              onClick={() => setActiveWeaknessTab(model)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors",
+                                activeWeaknessTab === model
+                                  ? "bg-red-50 text-red-600"
+                                  : "bg-gray-50 text-gray-500 hover:bg-gray-100"
+                              )}
+                            >
+                              {model}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      <div className="space-y-4 max-h-[300px] overflow-y-auto custom-scrollbar pr-1">
+                        {(weaknessPopupModels.length === 1 ? weaknessPopupModels[0] === 'Claude 3.5' : activeWeaknessTab === 'Claude 3.5') && (
+                          <div className="space-y-3">
+                            <div className="bg-white rounded-xl p-3 border border-red-100 shadow-sm">
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-sm text-slate-800">过度拒答 (Over-refusal)</h3>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-600 rounded">
+                                  错误率 72%
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">
+                                在面对具有轻微模糊性或误导性的安全相关问题时，倾向于直接拒绝回答。
+                              </p>
+                            </div>
+                            <div className="bg-white rounded-xl p-3 border border-red-100 shadow-sm">
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-sm text-slate-800">多约束条件遗忘</h3>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-600 rounded">
+                                  错误率 45%
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">
+                                当 prompt 中包含超过 7 个独立且相互制约的格式或内容约束时，容易遗漏后几个。
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {(weaknessPopupModels.length === 1 ? weaknessPopupModels[0] === 'GPT-4' : activeWeaknessTab === 'GPT-4') && (
+                          <div className="space-y-3">
+                            <div className="bg-white rounded-xl p-3 border border-red-100 shadow-sm">
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-sm text-slate-800">长文本幻觉</h3>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-600 rounded">
+                                  错误率 58%
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">
+                                在生成极长文本时，后期容易偏离初始设定或产生事实性错误。
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {(weaknessPopupModels.length === 1 ? weaknessPopupModels[0] === 'Llama 3' : activeWeaknessTab === 'Llama 3') && (
+                          <div className="space-y-3">
+                            <div className="bg-white rounded-xl p-3 border border-red-100 shadow-sm">
+                              <div className="flex justify-between items-start mb-2">
+                                <h3 className="font-bold text-sm text-slate-800">模糊竞态条件忽略</h3>
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 bg-red-100 text-red-600 rounded">
+                                  错误率 61%
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 leading-relaxed">
+                                在分析复杂的并发或多线程代码时，容易忽略非典型的竞态条件。
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
               
-              <textarea 
-                ref={textareaRef}
-                value={input}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder="输入你的干预指令，或者 @ 某个模型..."
-                className="w-full h-24 bg-transparent p-4 pr-12 text-sm focus:outline-none resize-none"
-              ></textarea>
-              <button className="absolute right-4 bottom-4 w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center hover:bg-blue-700 transition-colors shadow-sm hover:scale-105 active:scale-95">
+              {/* Quote Display */}
+              {quote && (
+                <div className="px-4 pt-3 pb-1 shrink-0 relative group">
+                  <div className="text-sm text-gray-500 bg-white p-2.5 rounded-lg border-l-[3px] border-blue-400 flex justify-between items-start gap-2 shadow-sm ring-1 ring-gray-100">
+                    <div className="line-clamp-2 leading-relaxed">
+                      <span className="font-medium text-gray-700">@{quote.modelName}</span> "{quote.text}"
+                    </div>
+                    <button 
+                      onClick={() => setQuote(null)}
+                      className="text-gray-400 hover:text-gray-600 p-1 rounded-md hover:bg-gray-100 transition-colors shrink-0 opacity-0 group-hover:opacity-100"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex-1 relative flex flex-col group/input-area">
+                {/* Highlight Overlay Layer for Mentions */}
+                <div 
+                  className={cn(
+                    "absolute top-0 left-0 w-full h-full pointer-events-none px-4 pr-12 text-[15px] leading-relaxed break-words whitespace-pre-wrap font-sans overflow-hidden text-gray-900",
+                    quote ? "py-[8px]" : "py-[16px]" // py-2 is 8px, py-4 is 16px
+                  )}
+                  aria-hidden="true"
+                >
+                  {input ? input.split(/(@(?:GPT-4|Claude 3\.5|Llama 3|Gemini Pro|GPT-4o))/g).map((part, i) => {
+                    if (part.startsWith('@')) {
+                      return <span key={i} className="text-blue-600 font-medium bg-blue-50/80 rounded px-0.5 -mx-0.5">{part}</span>;
+                    }
+                    return <span key={i}>{part}</span>;
+                  }) : <span className="text-gray-400">输入你的干预指令，或者 @ 某个模型...</span>}
+                  {/* Invisible char to ensure empty lines render */}
+                  {input.endsWith('\n') ? <br/> : <span>&#8203;</span>}
+                </div>
+                
+                <textarea 
+                  ref={textareaRef}
+                  value={input}
+                  onChange={handleInput}
+                  onKeyDown={handleKeyDown}
+                  onScroll={(e) => {
+                    // Sync scroll position with the overlay
+                    const overlay = e.currentTarget.previousElementSibling as HTMLElement;
+                    if (overlay) {
+                      overlay.scrollTop = e.currentTarget.scrollTop;
+                    }
+                  }}
+                  placeholder=""
+                  className={cn(
+                    "w-full bg-transparent px-4 pr-12 text-[15px] focus:outline-none resize-none custom-scrollbar flex-1 leading-relaxed z-10 relative",
+                    quote ? "py-2 min-h-[96px] h-24" : "py-4 min-h-[144px] h-36"
+                  )}
+                  style={{
+                    color: 'transparent',
+                    caretColor: '#111827', // dark gray caret to match normal text
+                  }}
+                ></textarea>
+              </div>
+              <button 
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className={cn(
+                  "absolute right-4 bottom-4 w-8 h-8 rounded-full flex items-center justify-center transition-colors shadow-sm z-20",
+                  input.trim() ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 active:scale-95" : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                )}
+              >
                 <Send className="w-3.5 h-3.5 ml-0.5" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right Sidebar: Collapsible Sidebar moved here */}
+        {/* Right Sidebar: Meeting Settings & Expert Copilot */}
         <div 
           className={cn(
-            "bg-white border-l border-gray-200 transition-all duration-300 ease-in-out flex flex-col z-30 shadow-sm",
-            isSidebarOpen ? "w-64" : "w-16"
+            "bg-white border-l border-gray-200 transition-all duration-300 ease-in-out flex flex-col z-10 shadow-sm relative shrink-0",
+            isSidebarOpen ? "w-[300px]" : "w-16"
           )}
         >
-          <div className="p-4 border-b border-gray-100 flex items-center justify-between">
-            {isSidebarOpen && <span className="font-bold text-gray-900 text-sm">会议设置</span>}
-            <button 
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-              className={cn("p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors", !isSidebarOpen && "mx-auto")}
-            >
-              {isSidebarOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto p-3 space-y-4">
-            {/* Models Config */}
-            <div>
-              <div className={cn("flex items-center gap-2 mb-2 px-1", !isSidebarOpen && "justify-center")}>
-                <Users className="w-4 h-4 text-gray-500" />
-                {isSidebarOpen && <span className="text-xs font-bold text-gray-700">参会模型</span>}
-              </div>
+          {/* Meeting Settings Area */}
+          <div className="flex-1 overflow-y-auto flex flex-col h-full custom-scrollbar">
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
               {isSidebarOpen && (
-                <div className="space-y-2">
-                  <div className="p-2 border border-gray-100 rounded-lg bg-gray-50 flex items-center justify-between group">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-blue-100 flex items-center justify-center">
-                        <Cpu className="w-3 h-3 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">GPT-4</div>
-                        <div className="text-[10px] text-gray-500">激进派</div>
-                      </div>
-                    </div>
-                    <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 className="w-3 h-3" /></button>
-                  </div>
-                  <div className="p-2 border border-gray-100 rounded-lg bg-gray-50 flex items-center justify-between group">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-purple-100 flex items-center justify-center">
-                        <Cpu className="w-3 h-3 text-purple-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Claude 3.5</div>
-                        <div className="text-[10px] text-gray-500">保守派</div>
-                      </div>
-                    </div>
-                    <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 className="w-3 h-3" /></button>
-                  </div>
-                  <div className="p-2 border border-gray-100 rounded-lg bg-gray-50 flex items-center justify-between group">
-                    <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-green-100 flex items-center justify-center">
-                        <Cpu className="w-3 h-3 text-green-600" />
-                      </div>
-                      <div>
-                        <div className="text-xs font-bold text-gray-900">Llama 3</div>
-                        <div className="text-[10px] text-gray-500">总结者</div>
-                      </div>
-                    </div>
-                    <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity"><Edit3 className="w-3 h-3" /></button>
-                  </div>
-                  <button className="w-full py-1.5 border border-dashed border-gray-300 rounded-lg text-xs text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1">
-                    <Plus className="w-3 h-3" /> 添加模型
-                  </button>
-                </div>
+                <span className="font-bold text-gray-900 text-sm">会议设置</span>
               )}
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                className={cn(
+                  "p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors",
+                  !isSidebarOpen && "mx-auto"
+                )}
+              >
+                {isSidebarOpen ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+              </button>
+            </div>
+            
+            <div className="p-4 space-y-6 shrink-0 border-b border-gray-100 pb-6">
+              {/* Models Config */}
+              <div>
+                <div className={cn("flex items-center gap-2 mb-3 px-1", !isSidebarOpen && "justify-center")}>
+                  <Users className="w-4 h-4 text-gray-500" />
+                  {isSidebarOpen && <span className="text-xs font-bold text-gray-700">参会模型</span>}
+                </div>
+                {isSidebarOpen && (
+                  <div className="space-y-2">
+                    <div className="p-3 border border-gray-100 rounded-xl bg-gray-50 flex items-center justify-between group shadow-sm hover:border-blue-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">GPT-4</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">易产生长文本幻觉</div>
+                        </div>
+                      </div>
+                      {/* 隐藏编辑按钮 */}
+                    </div>
+                    <div className="p-3 border border-gray-100 rounded-xl bg-gray-50 flex items-center justify-between group shadow-sm hover:border-purple-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">Claude 3.5</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">多约束条件易遗忘</div>
+                        </div>
+                      </div>
+                      {/* 隐藏编辑按钮 */}
+                    </div>
+                    <div className="p-3 border border-gray-100 rounded-xl bg-gray-50 flex items-center justify-between group shadow-sm hover:border-green-200 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center">
+                          <Cpu className="w-4 h-4 text-green-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-bold text-gray-900">Llama 3</div>
+                          <div className="text-[11px] text-gray-500 mt-0.5">易忽略极端竞态条件</div>
+                        </div>
+                      </div>
+                      {/* 隐藏编辑按钮 */}
+                    </div>
+                    {/* 隐藏添加模型按钮 */}
+                  </div>
+                )}
+              </div>
+
+              {/* Constraints */}
+              <div>
+                <div className={cn("flex items-center gap-2 mb-3 px-1 mt-6", !isSidebarOpen && "justify-center")}>
+                  <Settings className="w-4 h-4 text-gray-500" />
+                  {isSidebarOpen && <span className="text-xs font-bold text-gray-700">讨论约束</span>}
+                </div>
+                {isSidebarOpen && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-xs text-gray-600">强制引用知识库</span>
+                      <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" />
+                    </div>
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-xs text-gray-600">发言字数限制</span>
+                      <div className="flex items-center bg-gray-100 rounded-md border border-gray-200 overflow-hidden">
+                        <input 
+                          type="number" 
+                          defaultValue={200}
+                          min={1}
+                          max={1000}
+                          className="w-14 text-xs bg-transparent px-2 py-1 text-gray-700 text-center focus:ring-0 outline-none" 
+                        />
+                        <span className="text-[10px] bg-white px-2 py-1 text-gray-500 border-l border-gray-200">字</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between px-2">
+                      <span className="text-xs text-gray-600">自动轮流发言</span>
+                      <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-3.5 h-3.5" />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Constraints */}
-            <div>
-              <div className={cn("flex items-center gap-2 mb-2 px-1 mt-4", !isSidebarOpen && "justify-center")}>
-                <Settings className="w-4 h-4 text-gray-500" />
-                {isSidebarOpen && <span className="text-xs font-bold text-gray-700">讨论约束</span>}
-              </div>
-              {isSidebarOpen && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between px-2">
-                    <span className="text-xs text-gray-600">强制引用知识库</span>
-                    <input type="checkbox" defaultChecked className="rounded text-blue-600 focus:ring-blue-500" />
-                  </div>
-                  <div className="flex items-center justify-between px-2">
-                    <span className="text-xs text-gray-600">发言字数限制</span>
-                    <div className="flex items-center">
-                      <input 
-                        type="number" 
-                        defaultValue={200}
-                        min={1}
-                        max={1000}
-                        className="w-12 text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-l text-gray-700 text-center border-none focus:ring-1 focus:ring-blue-500 outline-none" 
-                      />
-                      <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-r text-gray-500 border-l border-gray-200">字</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between px-2">
-                    <span className="text-xs text-gray-600">自动轮流发言</span>
-                    <input type="checkbox" className="rounded text-blue-600 focus:ring-blue-500" />
-                  </div>
-                </div>
-              )}
-            </div>
+            {/* Expert Copilot Area Removed */}
           </div>
         </div>
+
+        {/* Selection Popover */}
+        {selectionPopover && selectionPopover.visible && createPortal(
+          <div 
+            onMouseDown={(e) => e.preventDefault()}
+            className="fixed z-[10000] bg-white rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.15)] border border-gray-100 flex items-center p-1.5 animate-in fade-in zoom-in-95 duration-200"
+            style={{
+              left: selectionPopover.x,
+              top: selectionPopover.y,
+              transform: 'translateX(-50%)'
+            }}
+          >
+            {/* App Icon */}
+            <div className="px-2 flex items-center justify-center">
+              <div className="w-[22px] h-[22px] rounded-md bg-black flex items-center justify-center shadow-sm relative overflow-hidden group">
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M12 4L4 18H20L12 4Z" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+                  <circle cx="12" cy="13" r="3" fill="#3B82F6"/>
+                </svg>
+              </div>
+            </div>
+            
+            <div className="w-px h-5 bg-gray-200 mx-1"></div>
+            
+            {/* Actions */}
+            <div className="flex items-center gap-1">
+              <button 
+                onClick={() => {
+                  const targetModel = selectionPopover.modelName ? `@${selectionPopover.modelName} ` : '';
+                  setQuote({ text: selectionPopover.text, modelName: selectionPopover.modelName || '未知模型' });
+                  setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + targetModel + `针对你的观点，我认为 `);
+                  if (selectionPopover.modelName) setWeaknessPopupModels(prev => Array.from(new Set([...prev, selectionPopover.modelName!])));
+                  setSelectionPopover(null);
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition-colors"
+              >
+                <MessageSquareQuote className="w-4 h-4 text-gray-500" />
+                <span>反驳ta</span>
+              </button>
+              <button 
+                onClick={() => {
+                  const targetModel = selectionPopover.modelName ? `@${selectionPopover.modelName} ` : '';
+                  setQuote({ text: selectionPopover.text, modelName: selectionPopover.modelName || '未知模型' });
+                  setInput(prev => prev + (prev.endsWith(' ') || prev.length === 0 ? '' : ' ') + targetModel + `我想补充一点： `);
+                  if (selectionPopover.modelName) setWeaknessPopupModels(prev => Array.from(new Set([...prev, selectionPopover.modelName!])));
+                  setSelectionPopover(null);
+                  textareaRef.current?.focus();
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 hover:bg-gray-100 rounded-lg text-sm text-gray-700 transition-colors"
+              >
+                <PlusCircle className="w-4 h-4 text-gray-500" />
+                <span>补充观点</span>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
       </div>
     );
   };

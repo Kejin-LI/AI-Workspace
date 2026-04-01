@@ -1,20 +1,129 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Brain, Code, Zap, Globe, Cpu, Languages } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Code, Zap, Globe, Cpu, Languages, X, Lock } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { t, language, toggleLanguage } = useLanguage();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  const handleExpertClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (localStorage.getItem('admin_authenticated') === 'true') {
+      navigate('/expert/workbench');
+    } else {
+      setShowPasswordModal(true);
+    }
+  };
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/verify-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        localStorage.setItem('admin_authenticated', 'true');
+        setShowPasswordModal(false);
+        navigate('/expert/workbench');
+      } else {
+        setError(data.error || '密码错误');
+      }
+    } catch (err) {
+      setError('网络错误，请稍后再试');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-white text-foreground overflow-hidden font-sans selection:bg-lab-yellow selection:text-black">
+      {/* Password Modal */}
+      {showPasswordModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">访问受限</h3>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                  setError('');
+                }} 
+                className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleVerify} className="p-6 space-y-4">
+              <p className="text-sm text-gray-500 mb-4">
+                当前为内部测试 Demo 阶段，仅对受邀专家开放。请输入访问密码：
+              </p>
+              <div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setError('');
+                  }}
+                  placeholder="请输入密码"
+                  className={cn(
+                    "w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none transition-colors",
+                    error ? "border-red-300 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
+                  )}
+                  autoFocus
+                />
+                {error && (
+                  <p className="text-xs text-red-500 mt-2 font-medium">{error}</p>
+                )}
+              </div>
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!password.trim() || isVerifying}
+                  className="w-full py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isVerifying ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></span>
+                  ) : (
+                    '验证并进入'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
       
       {/* Navbar */}
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center backdrop-blur-xl bg-white/50 border-b border-white/20">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center text-white font-bold font-display shadow-lg shadow-lab-purple/50">TA</div>
+        <div className="flex items-center gap-2 cursor-pointer group/logo">
+          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center shadow-lg shadow-black/20 shrink-0 relative overflow-hidden group-hover/logo:scale-[1.05] group-hover/logo:rotate-3 transition-all duration-300">
+            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 4L4 18H20L12 4Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
+              <circle cx="12" cy="13" r="3.5" fill="#3B82F6"/>
+            </svg>
+          </div>
           <span className="font-bold text-lg tracking-tight">{t.common.appName}</span>
         </div>
         <div className="flex items-center gap-4">
@@ -73,13 +182,13 @@ export function LandingPage() {
           </p>
 
           <div className="relative z-30 flex flex-col sm:flex-row gap-4 w-full sm:w-auto px-4 mb-20">
-            <Link 
-              to="/expert/workbench"
+            <button 
+              onClick={handleExpertClick}
               className="group px-8 py-4 bg-black text-white rounded-full text-sm font-bold hover:scale-105 transition-all shadow-xl shadow-black/20 flex items-center justify-center gap-2"
             >
               {t.landing.hero.ctaExpert}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-            </Link>
+            </button>
             
             <div className="relative group/requester-btn inline-block">
               <button

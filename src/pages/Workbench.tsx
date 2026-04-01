@@ -268,12 +268,22 @@ export function Workbench() {
       };
       
       updateRect();
-      window.addEventListener('scroll', updateRect, true);
       window.addEventListener('resize', updateRect);
       
+      // Close dropdown when scrolling outside
+      const handleScroll = (e: Event) => {
+        // Only close if scrolling an element that is NOT inside the dropdown
+        const target = e.target as HTMLElement;
+        if (!target.closest('.filter-dropdown-content')) {
+          setShowFilterDropdown(false);
+        }
+      };
+      
+      window.addEventListener('scroll', handleScroll, true);
+      
       return () => {
-        window.removeEventListener('scroll', updateRect, true);
         window.removeEventListener('resize', updateRect);
+        window.removeEventListener('scroll', handleScroll, true);
       };
     }
   }, [showFilterDropdown]);
@@ -298,6 +308,49 @@ export function Workbench() {
   const [showCompareDropdown1, setShowCompareDropdown1] = useState(false);
   const [showCompareDropdown2, setShowCompareDropdown2] = useState(false);
   const [modelSearchQuery, setModelSearchQuery] = useState('');
+
+  const [roles, setRoles] = useState([
+    {
+      id: 'r1',
+      name: '环境模拟器 (Patient)',
+      model: 'Llama 3 (推荐)',
+      prompt: '扮演客观环境或用户，提供模糊的初始反馈，不主动给出答案。',
+      type: 'neutral'
+    },
+    {
+      id: 'r2',
+      name: '规则护栏 (Challenger)',
+      model: 'Claude 3.5 (推荐)',
+      prompt: '扮演伦理审查员或安全护栏，对测试模型进行极其苛刻的挑刺和漏洞挖掘。',
+      type: 'challenger'
+    },
+    {
+      id: 'r3',
+      name: '被测模型 (Target AI)',
+      model: 'GPT-4 (待测)',
+      prompt: '试图在沙盒中完成任务，同时应对模拟器和护栏的双重压力。',
+      type: 'target'
+    }
+  ]);
+
+  const addRole = () => {
+    const newRole = {
+      id: `r${Date.now()}`,
+      name: '新角色 (New Role)',
+      model: 'GPT-4',
+      prompt: '请输入该角色的行为准则和目标设定。',
+      type: 'neutral' // default type
+    };
+    setRoles([...roles, newRole]);
+  };
+
+  const removeRole = (id: string) => {
+    setRoles(roles.filter(r => r.id !== id));
+  };
+
+  const updateRole = (id: string, field: string, value: string) => {
+    setRoles(roles.map(r => r.id === id ? { ...r, [field]: value } : r));
+  };
 
   // Knowledge base at mentions
   const [showKnowledgeMention, setShowKnowledgeMention] = useState(false);
@@ -328,6 +381,26 @@ export function Workbench() {
       setCurrentChallengeIndex((prev) => (prev + 1) % BOUNTY_CHALLENGES.length);
     }, 5000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Listen for insertPrompt events from ExpertCopilotSidebar
+  useEffect(() => {
+    const handleInsertPrompt = (e: Event) => {
+      const customEvent = e as CustomEvent<string>;
+      setInput(prev => prev ? `${prev}\n\n${customEvent.detail}` : customEvent.detail);
+      
+      // Auto-focus textarea
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.selectionStart = textareaRef.current.value.length;
+          textareaRef.current.selectionEnd = textareaRef.current.value.length;
+        }
+      }, 50);
+    };
+
+    window.addEventListener('insertPrompt', handleInsertPrompt);
+    return () => window.removeEventListener('insertPrompt', handleInsertPrompt);
   }, []);
 
   const handleStart = () => {
@@ -716,7 +789,7 @@ export function Workbench() {
                         : mode === 'compare'
                           ? '工作遇到什么难题了？选择2个你最信任的大模型进行明牌对比！\n输入 @ 快速引用你的数字分身和专属知识库文档'
                           : mode === 'roundtable'
-                            ? '抛出一个具有争议性的话题，看看多位 AI 专家如何为你展开深度辩论！\n输入 @ 快速引用你的数字分身和专属知识库文档'
+                            ? '设定一个辩论主题，并指定每个回合的任务（如：金融欺诈案，Round 1 陈述案情，Round 2 交叉质询...）\n如果不指定，平台将提供通用的圆桌推进流程'
                             : '工作遇到什么难题了？快把那些让头发掉光的学术问题扔给我！\n输入 @ 快速引用你的数字分身和专属知识库文档'
                   }
                   className="flex-1 h-24 resize-none outline-none text-gray-700 placeholder-gray-300 bg-transparent text-sm leading-relaxed py-1.5"
@@ -924,6 +997,8 @@ export function Workbench() {
                       </div>
                     </div>
                   ) : (
+                    <>
+                    {mode !== 'roundtable' && (
                     <div 
                       className="flex items-center bg-gray-100/80 rounded-full p-1 border border-gray-200/50 relative"
                       onMouseEnter={() => {}}
@@ -995,6 +1070,8 @@ export function Workbench() {
                         </button>
                       </div>
                     </div>
+                    )}
+                    </>
                   )}
 
                   {/* Skill Selector */}
@@ -1018,71 +1095,95 @@ export function Workbench() {
 
                         {showFilterDropdown && filterButtonRect && createPortal(
                           <div 
-                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                            className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200 flex flex-col filter-dropdown-content"
                             style={{
                               top: filterButtonRect.bottom + 8,
                               left: filterButtonRect.left,
+                              maxHeight: 'calc(100vh - ' + (filterButtonRect.bottom + 20) + 'px)'
                             }}
                           >
-                            <div className="w-[600px] p-6 bg-white rounded-xl shadow-xl border border-gray-100">
-                              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                            <div className="w-[600px] p-6 bg-white rounded-xl shadow-xl border border-gray-100 flex flex-col overflow-hidden">
+                              <div className="flex items-center justify-between mb-4 border-b border-gray-100 pb-3 shrink-0">
                                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                                   <Users className="w-5 h-5 text-blue-600" />
-                                  沙盒角色分配 (RL Environment)
+                                  沙盒角色分配
                                 </h3>
                                 <button onClick={() => setShowFilterDropdown(false)} className="text-gray-400 hover:text-gray-600">
                                   <X className="w-4 h-4" />
                                 </button>
                               </div>
                               
-                              <div className="space-y-4">
-                                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center">
-                                        <Cpu className="w-3.5 h-3.5" />
+                              <div className="space-y-4 overflow-y-auto pr-2 pb-2">
+                                {roles.map((role) => (
+                                  <div key={role.id} className={cn(
+                                    "rounded-lg p-3 border group relative",
+                                    role.type === 'neutral' ? "bg-slate-50 border-slate-200" :
+                                    role.type === 'challenger' ? "bg-rose-50 border-rose-200" :
+                                    "bg-emerald-50 border-emerald-200"
+                                  )}>
+                                    <button 
+                                      onClick={() => removeRole(role.id)}
+                                      className="absolute -top-2 -right-2 w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                    <div className="flex items-center justify-between mb-2">
+                                      <div className="flex items-center gap-2 flex-1">
+                                        <div className={cn(
+                                          "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+                                          role.type === 'neutral' ? "bg-blue-100 text-blue-700" :
+                                          role.type === 'challenger' ? "bg-rose-100 text-rose-700" :
+                                          "bg-emerald-100 text-emerald-700"
+                                        )}>
+                                          {role.type === 'neutral' ? <Cpu className="w-3.5 h-3.5" /> :
+                                           role.type === 'challenger' ? <AlertCircle className="w-3.5 h-3.5" /> :
+                                           <Rocket className="w-3.5 h-3.5" />}
+                                        </div>
+                                        <input 
+                                          type="text" 
+                                          value={role.name}
+                                          onChange={(e) => updateRole(role.id, 'name', e.target.value)}
+                                          className={cn(
+                                            "font-semibold text-sm bg-transparent border-b border-transparent focus:outline-none px-1 py-0.5 w-full transition-colors",
+                                            role.type === 'neutral' ? "text-slate-800 hover:border-slate-300 focus:border-blue-500" :
+                                            role.type === 'challenger' ? "text-rose-800 hover:border-rose-300 focus:border-rose-500" :
+                                            "text-emerald-800 hover:border-emerald-300 focus:border-emerald-500"
+                                          )}
+                                        />
                                       </div>
-                                      <span className="font-semibold text-sm text-slate-800">环境模拟器 (Patient)</span>
+                                      <select 
+                                        value={role.model}
+                                        onChange={(e) => updateRole(role.id, 'model', e.target.value)}
+                                        className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none ml-4 shrink-0"
+                                      >
+                                        <option value="GPT-4 (待测)">GPT-4</option>
+                                        <option value="Claude 3.5 (推荐)">Claude 3.5</option>
+                                        <option value="Llama 3 (推荐)">Llama 3</option>
+                                        <option value="Gemini Pro (待测)">Gemini Pro</option>
+                                      </select>
                                     </div>
-                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
-                                      <option>Llama 3 (推荐)</option>
-                                      <option>Claude 3.5</option>
-                                    </select>
-                                  </div>
-                                  <p className="text-xs text-slate-500 pl-8">扮演客观环境或用户，提供模糊的初始反馈，不主动给出答案。</p>
-                                </div>
-
-                                <div className="bg-rose-50 rounded-lg p-3 border border-rose-200">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-md bg-rose-100 text-rose-700 flex items-center justify-center">
-                                        <AlertCircle className="w-3.5 h-3.5" />
-                                      </div>
-                                      <span className="font-semibold text-sm text-rose-800">规则护栏 (Challenger)</span>
+                                    <div className="pl-8">
+                                      <textarea 
+                                        value={role.prompt}
+                                        onChange={(e) => updateRole(role.id, 'prompt', e.target.value)}
+                                        className={cn(
+                                          "w-full text-xs bg-transparent resize-none border border-transparent focus:bg-white focus:outline-none rounded p-1 transition-all",
+                                          role.type === 'neutral' ? "text-slate-500 hover:border-slate-200 focus:border-blue-300" :
+                                          role.type === 'challenger' ? "text-rose-600/80 hover:border-rose-200 focus:border-rose-300" :
+                                          "text-emerald-600/80 hover:border-emerald-200 focus:border-emerald-300"
+                                        )}
+                                        rows={2}
+                                      />
                                     </div>
-                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
-                                      <option>Claude 3.5 (推荐)</option>
-                                      <option>GPT-4</option>
-                                    </select>
                                   </div>
-                                  <p className="text-xs text-rose-600/80 pl-8">扮演伦理审查员或安全护栏，对测试模型进行极其苛刻的挑刺和漏洞挖掘。</p>
-                                </div>
-
-                                <div className="bg-emerald-50 rounded-lg p-3 border border-emerald-200">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <div className="w-6 h-6 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center">
-                                        <Rocket className="w-3.5 h-3.5" />
-                                      </div>
-                                      <span className="font-semibold text-sm text-emerald-800">被测模型 (Target AI)</span>
-                                    </div>
-                                    <select className="text-xs border-gray-300 rounded bg-white text-gray-700 px-2 py-1 outline-none">
-                                      <option>GPT-4 (待测)</option>
-                                      <option>Gemini Pro (待测)</option>
-                                    </select>
-                                  </div>
-                                  <p className="text-xs text-emerald-600/80 pl-8">试图在沙盒中完成任务，同时应对模拟器和护栏的双重压力。</p>
-                                </div>
+                                ))}
+                                
+                                <button 
+                                  onClick={addRole}
+                                  className="w-full py-2 border border-dashed border-gray-300 rounded-lg text-sm text-gray-500 hover:bg-gray-50 hover:text-blue-600 transition-colors flex items-center justify-center gap-1"
+                                >
+                                  <span>+</span> 添加新角色
+                                </button>
                                 
                                 <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                                   <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -1106,37 +1207,32 @@ export function Workbench() {
                     )}
 
                     {/* 始终显示国际期刊按钮，如果在圆桌模式下则作为独立的过滤按钮 */}
+                    {mode !== 'roundtable' && (
                     <>
                       <button
-                        ref={mode !== 'roundtable' ? filterButtonRef : journalButtonRef}
+                        ref={filterButtonRef}
                         onClick={(e) => { 
-                          if (mode === 'roundtable') {
-                             e.stopPropagation(); 
-                             setShowJournalDropdown(!showJournalDropdown);
-                             setShowFilterDropdown(false);
-                          } else {
-                             setShowFilterDropdown(!showFilterDropdown);
-                          }
+                          setShowFilterDropdown(!showFilterDropdown);
                         }}
                         aria-label="filter-button"
                         className={cn(
                           "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm transition-all border",
-                          (mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)
+                          showFilterDropdown
                             ? "bg-blue-50 text-blue-600 border-blue-200 shadow-sm" 
                             : "bg-white text-slate-700 border-gray-200 hover:border-blue-200 hover:text-blue-600"
                         )}
                       >
                         <BookOpen className="w-4 h-4" />
                         <span>{selectedJournalDb}</span>
-                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", ((mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)) ? "rotate-180" : "")} />
+                        <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", showFilterDropdown ? "rotate-180" : "")} />
                       </button>
 
-                      {((mode !== 'roundtable' && showFilterDropdown) || (mode === 'roundtable' && showJournalDropdown)) && (mode !== 'roundtable' ? filterButtonRect : journalButtonRect) && createPortal(
+                      {showFilterDropdown && filterButtonRect && createPortal(
                         <div 
-                          className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200"
+                          className="fixed z-[9999] animate-in fade-in zoom-in-95 duration-200 filter-dropdown-content"
                           style={{
-                            top: (mode !== 'roundtable' ? filterButtonRect : journalButtonRect)!.bottom + 8,
-                            left: (mode !== 'roundtable' ? filterButtonRect : journalButtonRect)!.left,
+                            top: filterButtonRect.bottom + 8,
+                            left: filterButtonRect.left,
                           }}
                         >
                           <div className="w-[480px] p-6 bg-white rounded-xl shadow-xl border border-gray-100">
@@ -1223,9 +1319,11 @@ export function Workbench() {
                         document.body
                       )}
                     </>
+                    )}
                   </div>
 
                   {/* Model Selector */}
+                  {mode !== 'roundtable' && (
                   <div className="relative">
                     {!selectedSkill ? (
                       <div className="relative">
@@ -1274,22 +1372,27 @@ export function Workbench() {
                       </div>
                     ) : null}
                   </div>
+                  )}
 
                   {/* File Upload */}
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileChange} 
-                    className="hidden" 
-                    multiple 
-                  />
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors ml-1"
-                    title="上传文件"
-                  >
-                    <Paperclip className="w-5 h-5" />
-                  </button>
+                  {mode !== 'roundtable' && (
+                  <div className="flex items-center">
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      onChange={handleFileChange} 
+                      className="hidden" 
+                      multiple 
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors ml-1"
+                      title="上传文件"
+                    >
+                      <Paperclip className="w-5 h-5" />
+                    </button>
+                  </div>
+                  )}
                 </div>
                 
                 <div className="relative group/send">

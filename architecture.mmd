@@ -1,0 +1,35 @@
+graph TD
+    subgraph 需求层 [Demand Layer: AI Labs & Enterprises]
+        B1[大模型厂商 AI Labs]
+        B2[垂直领域企业 Enterprises]
+        B3[研究机构 Research]
+        B1 -.->|重金采购: 高阶RL对齐数据/过程监督数据| P_Core
+        B2 -.->|API调用: 专家数字分身/复杂任务发包| P_Core
+    end
+
+    subgraph 平台层 [Platform Layer: TuringArena 核心引擎]
+        P_Core((TuringArena<br/>数据流转引擎))
+        
+        subgraph 核心产品矩阵 [Tools for Experts]
+            P1[动态RL沙盒<br/>多模型辩论圆桌]
+            P2[意图审计后台<br/>长程任务纠错面板]
+            P3[高阶专属知识库<br/>内置溯源RAG]
+            P4[本地安全客户端<br/>多模态GUI轨迹捕获]
+        end
+        
+        subgraph 价值流转机制 [Economic & Growth Flywheel]
+            V1[算力/Token积分经济<br/>以算力换标注]
+            V2[数字分身训练器<br/>复刻专家逻辑]
+            V3[评测集署名权网络<br/>打造行业标杆]
+        end
+        
+        P_Core --- P1 & P2 & P3 & P4
+        P_Core --- V1 & V2 & V3
+    end
+
+    subgraph 供给层 [Supply Layer: The Expert Network]
+        C1[顶尖人类专家 Top Experts]
+        C2[专家数字分身 Expert Avatars]
+        C1 -->|使用工具自然沉淀: 意图判定/逻辑纠错/GUI轨迹| P_Core
+        C2 -->|算力涌现: 代表专家自动处理海量长尾任务| P_Core
+    end
