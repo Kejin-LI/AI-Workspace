@@ -14,11 +14,7 @@ export function LandingPage() {
 
   const handleExpertClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    if (localStorage.getItem('admin_authenticated') === 'true') {
-      navigate('/expert/workbench');
-    } else {
-      setShowPasswordModal(true);
-    }
+    setShowPasswordModal(true);
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -27,7 +23,10 @@ export function LandingPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/verify-admin', {
+      const baseUrl = import.meta.env.BASE_URL;
+      const apiUrl = baseUrl.endsWith('/') ? `${baseUrl}api/verify-admin` : `${baseUrl}/api/verify-admin`;
+      
+      const res = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -150,7 +149,7 @@ export function LandingPage() {
           <div className="absolute top-[-20%] right-[-10%] w-[70vw] h-[70vw] bg-gradient-to-bl from-purple-600/10 via-pink-500/10 to-transparent blur-[120px] rounded-full mix-blend-multiply animate-pulse"></div>
           <div className="absolute bottom-[-10%] left-[-20%] w-[80vw] h-[80vw] bg-gradient-to-tr from-blue-600/10 to-purple-600/10 blur-[120px] rounded-full mix-blend-multiply"></div>
           <div className="absolute top-[20%] left-[30%] w-[40vw] h-[40vw] bg-pink-400/5 blur-[100px] rounded-full mix-blend-multiply animate-float"></div>
-          <div className="absolute inset-0 opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-cover"></div>
+
         </div>
 
         <div className="relative z-10 w-full px-4 md:px-8 max-w-[1440px] mx-auto flex flex-col items-center mt-20">
