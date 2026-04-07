@@ -1247,18 +1247,17 @@ export function UserProfile() {
             </div>
             <div className="space-y-4 relative">
               <div className="absolute left-0 top-2 bottom-0 w-px bg-gray-200"></div>
-              <div className="relative pl-4">
-                <div className="absolute -left-[2.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-blue-600 ring-4 ring-white"></div>
-                <h4 className="font-bold text-gray-900 text-xs">英国爱丁堡大学</h4>
-                <p className="text-xs text-gray-500 mt-0.5">生物信息学 · 硕士</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">2019.09 - 2021.07</p>
-              </div>
-              <div className="relative pl-4">
-                <div className="absolute -left-[2.5px] top-1.5 w-1.5 h-1.5 rounded-full bg-gray-300 ring-4 ring-white"></div>
-                <h4 className="font-bold text-gray-900 text-xs">浙江大学</h4>
-                <p className="text-xs text-gray-500 mt-0.5">计算机科学与技术 · 学士</p>
-                <p className="text-[10px] text-gray-400 mt-0.5">2015.09 - 2019.07</p>
-              </div>
+              {educationList.map((edu, index) => (
+                <div key={edu.id} className="relative pl-4">
+                  <div className={cn(
+                    "absolute -left-[2.5px] top-1.5 w-1.5 h-1.5 rounded-full ring-4 ring-white",
+                    index === 0 ? "bg-blue-600" : "bg-gray-300"
+                  )}></div>
+                  <h4 className="font-bold text-gray-900 text-xs">{edu.school}</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">{edu.major} · {edu.degree}</p>
+                  <p className="text-[10px] text-gray-400 mt-0.5">{edu.start} - {edu.end}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
