@@ -19,7 +19,8 @@ import {
   Globe,
   Layout,
   TrendingUp,
-  Feather
+  Feather,
+  RefreshCw
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -123,6 +124,28 @@ export function TaskHall() {
       color: 'border-lab-purple',
       royalty: true,
       attribution: true
+    },
+    {
+      id: 'doubao-001',
+      title: lang === 'zh' ? '豆包线上数据采集' : 'Doubao Online Data Collection',
+      type: lang === 'zh' ? '数据采集' : 'Data Collection',
+      domain: lang === 'zh' ? 'AI' : 'AI',
+      price: '500积分',
+      unit: lang === 'zh' ? '条' : 'item',
+      totalBudget: '$50,000',
+      deadline: lang === 'zh' ? '1个月' : '1 month',
+      applicants: 156,
+      requiredLevel: 'L3',
+      tags: ['数据采集', '豆包', 'AI'],
+      description: lang === 'zh' 
+        ? '为豆包AI进行线上用户交互数据采集，包括对话记录、反馈收集等。' 
+        : 'Collect online user interaction data for Doubao AI, including conversation logs and feedback.',
+      requirements: [
+        { icon: Globe, text: lang === 'zh' ? '中文能力' : 'Chinese Language' }
+      ],
+      color: 'border-lab-blue',
+      royalty: false,
+      attribution: false
     }
   ];
 
@@ -131,13 +154,8 @@ export function TaskHall() {
   const [taskAttempts, setTaskAttempts] = useState<Record<string, number>>({});
   
   const handleApply = (task: any) => {
-    // If already attempted and failed, don't allow re-apply
-    const myTask = myTasks.find(t => t && t.id === task.id);
-    if (myTask && myTask.status === 'failed') {
-      return;
-    }
-
     // If already passed and in_progress, just switch to 'my' tab
+    const myTask = myTasks.find(t => t && t.id === task.id);
     if (myTask && myTask.status === 'in_progress') {
       setActiveTab('my');
       return;
@@ -174,6 +192,12 @@ export function TaskHall() {
          if (index === 0) correctOptionIndex = 1;
          if (index === 1) correctOptionIndex = 3;
          if (index === 2) correctOptionIndex = 2;
+      } else if (selectedTask?.id === 'doubao-001') {
+         // Doubao Data Collection Questions
+         // 0: B, 1: B, 2: B
+         if (index === 0) correctOptionIndex = 1;
+         if (index === 1) correctOptionIndex = 1;
+         if (index === 2) correctOptionIndex = 1;
       } else {
          // Default Legal Questions
          // 0: A, 1: B, 2: C
@@ -190,16 +214,25 @@ export function TaskHall() {
     if (selectedTask) {
       setTaskAttempts(prev => ({ ...prev, [selectedTask.id]: 1 }));
       
-      // Add status to task object
+      // Add or update status to task object
       setMyTasks(prev => {
         const currentTasks = Array.isArray(prev) ? prev : [];
-        // Avoid duplicates
-        if (currentTasks.some(t => t?.id === selectedTask.id)) return currentTasks;
+        // Update existing task or add new one
+        const existingIndex = currentTasks.findIndex(t => t?.id === selectedTask.id);
         
-        const updatedTasks = [...currentTasks, { 
-          ...selectedTask, 
-          status: isAllCorrect ? 'in_progress' : 'failed' 
-        }];
+        let updatedTasks;
+        if (existingIndex !== -1) {
+          updatedTasks = [...currentTasks];
+          updatedTasks[existingIndex] = { 
+            ...updatedTasks[existingIndex], 
+            status: isAllCorrect ? 'in_progress' : 'failed' 
+          };
+        } else {
+          updatedTasks = [...currentTasks, { 
+            ...selectedTask, 
+            status: isAllCorrect ? 'in_progress' : 'failed' 
+          }];
+        }
         localStorage.setItem('expert_my_tasks', JSON.stringify(updatedTasks));
         return updatedTasks;
       });
@@ -241,6 +274,36 @@ export function TaskHall() {
         {
           question: 'Which statement about protein structure is FALSE?',
           options: ['A. Primary structure refers to the amino acid sequence.', 'B. α-helix and β-sheet belong to secondary structure.', 'C. All proteins must have a quaternary structure to function.', 'D. Hydrophobic interaction is a key force maintaining tertiary structure.']
+        }
+      ];
+    }
+
+    if (selectedTask?.id === 'doubao-001') {
+      return language === 'zh' ? [
+        {
+          question: '豆包AI在数据采集过程中，以下哪种做法是正确的？',
+          options: ['A. 未经用户同意直接采集敏感数据。', 'B. 对采集的数据进行匿名化处理。', 'C. 将用户数据出售给第三方。', 'D. 永久存储所有用户对话记录。']
+        },
+        {
+          question: '在AI模型训练数据收集中，最重要的原则是？',
+          options: ['A. 数据量越大越好，质量不重要。', 'B. 数据多样性和代表性。', 'C. 只采集特定群体的数据。', 'D. 可以使用任何来源的数据。']
+        },
+        {
+          question: '关于用户反馈数据的处理，以下哪项是最佳实践？',
+          options: ['A. 忽略负面反馈，只关注正面反馈。', 'B. 定期分析反馈并用于产品改进。', 'C. 将反馈直接公开在网上。', 'D. 只收集不处理。']
+        }
+      ] : [
+        {
+          question: 'In Doubao AI data collection, which practice is correct?',
+          options: ['A. Collect sensitive data without user consent.', 'B. Anonymize collected data.', 'C. Sell user data to third parties.', 'D. Permanently store all user conversations.']
+        },
+        {
+          question: 'What is the most important principle in AI training data collection?',
+          options: ['A. Quantity over quality.', 'B. Diversity and representativeness.', 'C. Only collect data from specific groups.', 'D. Use data from any source.']
+        },
+        {
+          question: 'What is the best practice for handling user feedback data?',
+          options: ['A. Ignore negative feedback, only focus on positive.', 'B. Regularly analyze and use feedback for product improvement.', 'C. Publish feedback directly online.', 'D. Collect but never process.']
         }
       ];
     }
@@ -288,7 +351,7 @@ export function TaskHall() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8">
+    <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
       {/* Header Section - Matches Image */}
       <div className="relative rounded-[32px] overflow-hidden p-10 bg-gradient-to-r from-[#1a1c2e] via-[#24263b] to-[#362f4b] text-white shadow-2xl">
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
@@ -349,7 +412,7 @@ export function TaskHall() {
       {activeTab === 'public' ? (
         <>
           {/* Task List */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
             {tasks.map(task => (
               <div 
                 key={task.id}
@@ -362,6 +425,7 @@ export function TaskHall() {
                         "px-2.5 py-1 rounded-full text-xs font-bold border",
                         task.domain === 'Legal' || task.domain === '法律' ? "bg-blue-50 text-blue-600 border-blue-100" :
                         task.domain === 'Medical' || task.domain === '医疗' ? "bg-green-50 text-green-600 border-green-100" :
+                        task.domain === 'AI' ? "bg-orange-50 text-orange-600 border-orange-100" :
                         "bg-purple-50 text-purple-600 border-purple-100"
                       )}>
                         {task.domain}
@@ -418,30 +482,56 @@ export function TaskHall() {
                   </div>
                   <button 
                     onClick={() => {
-                      if (myTasks.some(t => t && t.id === task.id)) {
-                        setActiveTab('my');
-                        return;
+                      const myTask = myTasks.find(t => t && t.id === task.id);
+                      if (myTask) {
+                        if (myTask.status === 'failed') {
+                          handleApply(task);
+                        } else {
+                          setActiveTab('my');
+                        }
+                      } else {
+                        handleApply(task);
                       }
-                      handleApply(task);
                     }}
                     className={cn(
                       "px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap shrink-0",
-                      myTasks.some(t => t && t.id === task.id)
-                        ? "bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200"
-                        : "bg-black text-white hover:bg-gray-800 hover:scale-105"
+                      (() => {
+                        const myTask = myTasks.find(t => t && t.id === task.id);
+                        if (myTask) {
+                          if (myTask.status === 'failed') {
+                            return "bg-orange-500 text-white hover:bg-orange-600 hover:scale-105";
+                          }
+                          return "bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200";
+                        }
+                        return "bg-black text-white hover:bg-gray-800 hover:scale-105";
+                      })()
                     )}
                   >
-                    {myTasks.some(t => t && t.id === task.id) ? (
-                      <>
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        {language === 'zh' ? '已领取，去查看' : 'Applied, View'}
-                      </>
-                    ) : (
-                      <>
-                        {t.expert.taskHall.card.apply}
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </>
-                    )}
+                    {(() => {
+                      const myTask = myTasks.find(t => t && t.id === task.id);
+                      if (myTask) {
+                        if (myTask.status === 'failed') {
+                          return (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5" />
+                              {language === 'zh' ? '重新申请' : 'Re-apply'}
+                            </>
+                          );
+                        }
+                        return (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            {language === 'zh' ? '已领取，去查看' : 'Applied, View'}
+                          </>
+                        );
+                      }
+                      return (
+                        <>
+                          {t.expert.taskHall.card.apply}
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </>
+                      );
+                    })()}
                   </button>
                 </div>
               </div>
@@ -481,6 +571,7 @@ export function TaskHall() {
                           "px-2.5 py-1 rounded-full text-xs font-bold border",
                           task.domain === 'Legal' || task.domain === '法律' ? "bg-blue-50 text-blue-600 border-blue-100" :
                           task.domain === 'Medical' || task.domain === '医疗' ? "bg-green-50 text-green-600 border-green-100" :
+                          task.domain === 'AI' ? "bg-orange-50 text-orange-600 border-orange-100" :
                           "bg-purple-50 text-purple-600 border-purple-100"
                         )}>
                           {task.domain}
@@ -581,7 +672,11 @@ export function TaskHall() {
                   <h3 className="text-xl font-display font-bold text-black">{t.expert.taskHall.modal.title}</h3>
                   <div className="flex items-center gap-3 mt-1">
                     <p className="text-sm text-gray-500 font-medium">{selectedTask.title}</p>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-bold animate-pulse">为方便体验demo，正确答案为：B、D、C</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-bold animate-pulse">
+                      {selectedTask.id === 'hle-001' ? '为方便体验demo，正确答案为：B、D、C' : 
+                       selectedTask.id === 'doubao-001' ? '为方便体验demo，正确答案为：B、B、B' :
+                       '为方便体验demo，正确答案为：A、B、C'}
+                    </span>
                   </div>
                 </div>
                 <button 

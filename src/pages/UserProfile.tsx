@@ -60,7 +60,7 @@ export function UserProfile() {
   // 教育背景状态
   const [educationList, setEducationList] = useState([
     { id: 1, school: '英国爱丁堡大学', major: '生物信息学', degree: '硕士', start: '2019.09', end: '2021.07' },
-    { id: 2, school: '浙江大学', major: '计算机科学与技术', degree: '学士', start: '2015.09', end: '2019.07' }
+    { id: 2, school: '莱斯大学', major: '神秘主义与灵知研究', degree: '学士', start: '2015.09', end: '2019.07' }
   ]);
   const [showAddEducation, setShowAddEducation] = useState(false);
   const [editingEduId, setEditingEduId] = useState<number | null>(null);
