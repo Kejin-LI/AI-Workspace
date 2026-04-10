@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { useNavigate } from 'react-router-dom';
-import { MessageSquare, Clock, CheckCircle2, Search, Flame, Eye, ThumbsUp, ChevronRight, ChevronLeft, HelpCircle, X, Send, ChevronDown, ArrowLeft, ArrowRight, PenTool, TrendingUp, Feather, Trophy, Scale, AlertCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { MessageSquare, Clock, CheckCircle2, Search, Flame, Eye, ThumbsUp, ChevronRight, ChevronLeft, HelpCircle, X, Send, ChevronDown, ArrowLeft, ArrowRight, PenTool, TrendingUp, Feather, Trophy, Scale, AlertCircle, Zap, Bot, Star } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { KnowledgeBaseView } from '../components/KnowledgeBaseView';
 
@@ -59,6 +59,99 @@ const BOUNTY_CHALLENGES = [
     attribution: true
   }
 ];
+
+const AVATARS_GALLERY = [
+  {
+    id: 1,
+    name: 'Kai',
+    expertName: '李珂瑾',
+    title: '内容创作专家',
+    description: '擅长创作引人入胜的多平台内容，让品牌故事触达受众',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kai',
+    category: '设计',
+    rating: 4.9,
+    usageCount: 1280
+  },
+  {
+    id: 2,
+    name: 'Phoebe',
+    expertName: '王律师',
+    title: '数据分析报告师',
+    description: '将复杂数据转化为清晰可执行的业务报告，让数据说话',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Phoebe',
+    category: '付费媒体',
+    rating: 4.8,
+    usageCount: 956
+  },
+  {
+    id: 3,
+    name: 'Jude',
+    expertName: '张医生',
+    title: '中国电商运营专家',
+    description: '精通天猫京东拼多多平台运营，从选品到爆款一站式操盘',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jude',
+    category: '专业服务',
+    rating: 4.95,
+    usageCount: 2100
+  },
+  {
+    id: 4,
+    name: 'Maya',
+    expertName: '刘教授',
+    title: '抖音策略师',
+    description: '精通抖音算法和内容生态，打造短视频爆款并实现商业变现',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maya',
+    category: '销售',
+    rating: 4.7,
+    usageCount: 876
+  },
+  {
+    id: 5,
+    name: 'Sam',
+    expertName: '陈工程师',
+    title: 'UI设计师',
+    description: '精通设计系统和组件库，追求像素级完美，打造无缝用户界面',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sam',
+    category: '产品',
+    rating: 4.85,
+    usageCount: 1540
+  },
+  {
+    id: 6,
+    name: 'Ula',
+    expertName: '黄教练',
+    title: '销售教练',
+    description: '用苏格拉底式培训训练销售团队，从60%达标到全员俱乐部',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ula',
+    category: '项目管理',
+    rating: 4.9,
+    usageCount: 654
+  },
+  {
+    id: 7,
+    name: 'Ben',
+    expertName: '周策略师',
+    title: '品牌策略师',
+    description: '15年品牌经验，守护品牌一致性的终极捍卫者',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Ben',
+    category: '质量测试',
+    rating: 4.75,
+    usageCount: 1120
+  },
+  {
+    id: 8,
+    name: 'Fay',
+    expertName: '吴运营',
+    title: '小红书运营专家',
+    description: '深谙小红书种草逻辑和推荐机制，打造高互动率种草内容',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Fay',
+    category: '运营支持',
+    rating: 4.8,
+    usageCount: 1680
+  }
+];
+
+const AVATAR_CATEGORIES = ['全部', '设计', '工程技术', '市场营销', '付费媒体', '销售', '产品', '项目管理', '质量测试', '运营支持', '专业服务'];
 
 // Mock Data for the new feed
 export const mockFeed = [
@@ -614,8 +707,34 @@ const PostDetailPage = ({ post, onBack, onDelete }: { post: typeof mockFeed[0], 
 
 export function Community() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('recommend'); // recommend, knowledge
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState('recommend'); // recommend, avatars
+  
+  // 监听路由状态变化
+  useEffect(() => {
+    if (location.state?.defaultTab) {
+      setActiveTab(location.state.defaultTab);
+      // 清除 state，避免刷新页面时再次触发
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(['全部']);
+  const [selectedAvatarCategory, setSelectedAvatarCategory] = useState('全部');
+  const [addedAvatarIds, setAddedAvatarIds] = useState<string[]>([]);
+
+  // 监听分身添加/移除状态
+  useEffect(() => {
+    const loadAddedAvatars = () => {
+      const existingStr = localStorage.getItem('addedAvatars');
+      const existing = existingStr ? JSON.parse(existingStr) : [];
+      setAddedAvatarIds(existing.map((a: any) => a.id));
+    };
+    loadAddedAvatars();
+    window.addEventListener('avatars-changed', loadAddedAvatars);
+    return () => window.removeEventListener('avatars-changed', loadAddedAvatars);
+  }, []);
+
   const [selectedPost, setSelectedPost] = useState<typeof mockFeed[0] | null>(null);
   const [feedData, setFeedData] = useState(mockFeed);
   const [showAllModels, setShowAllModels] = useState(false);
@@ -750,54 +869,78 @@ export function Community() {
         />
       ) : (
         <>
-          {/* Top Search Area with Gradient Background */}
-          <div className="w-full bg-transparent pt-8 pb-6">
-        <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24">
-          <div className="flex flex-col items-center justify-center max-w-3xl mx-auto">
-            {/* Search Bar */}
-            <div className="w-full relative mb-4 shadow-sm group">
-              <input 
-                type="text" 
-                placeholder="搜搜大佬们的通关秘籍，或者发个求助贴摇人，顺便赚点积分加个鸡腿！"
-                className="w-full pl-6 pr-12 py-3.5 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder:text-gray-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all text-base"
-              />
-              <button className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-black transition-colors">
-                <Search className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Discipline Categories */}
-            <div className="flex items-center gap-3 w-full pl-2">
-              <div className="flex items-center gap-1 text-sm text-gray-500 font-medium shrink-0">
-                学科分类：
-              </div>
-              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mb-2 w-full mask-edges">
-                {disciplines.map((tag) => {
-                  const isSelected = selectedDisciplines.includes(tag);
-                  return (
-                    <button 
-                      key={tag} 
-                      onClick={() => toggleDiscipline(tag)}
-                      className={cn(
-                        "px-3.5 py-1.5 border text-xs rounded-full transition-all whitespace-nowrap shrink-0",
-                        isSelected 
-                          ? "bg-black border-black text-white font-medium shadow-sm" 
-                          : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600"
-                      )}
-                    >
-                      {tag}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+      {/* Tab Navigation */}
+      <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 pb-0 pt-8">
+        <div className="flex items-center gap-2 mb-6 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
+          <button
+            onClick={() => setActiveTab('recommend')}
+            className={cn(
+              "px-6 py-2.5 rounded-lg text-sm font-bold transition-all",
+              activeTab === 'recommend'
+                ? "bg-black text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            )}
+          >推荐</button>
+          <button
+            onClick={() => setActiveTab('avatars')}
+            className={cn(
+              "px-6 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
+              activeTab === 'avatars'
+                ? "bg-black text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            )}
+          >
+            <Bot className="w-4 h-4" />
+            数字分身
+          </button>
         </div>
       </div>
 
       {/* Main Content Area */}
       <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 pb-16 pt-0">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px] gap-10 xl:gap-16">
+        {activeTab === 'recommend' ? (
+          <>
+            {/* Top Search Area with Gradient Background */}
+            <div className="w-full bg-transparent pb-6">
+              <div className="flex flex-col items-center justify-center max-w-3xl mx-auto">
+                {/* Search Bar */}
+                <div className="w-full relative mb-4 shadow-sm group">
+                  <input 
+                    type="text" 
+                    placeholder="搜搜大佬们的通关秘籍，或者发个求助贴摇人，顺便赚点积分加个鸡腿！"
+                    className="w-full pl-6 pr-12 py-3.5 bg-white border border-gray-200 rounded-2xl text-gray-900 placeholder:text-gray-400 placeholder:text-sm focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all text-base"
+                  />
+                  <button className="absolute right-4 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-black transition-colors">
+                    <Search className="w-5 h-5" />
+                  </button>
+                </div>
+                
+                {/* Discipline Categories */}
+                <div className="flex items-center gap-3 w-full pl-2">
+                  <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 -mb-2 w-full mask-edges">
+                    {disciplines.map((tag) => {
+                      const isSelected = selectedDisciplines.includes(tag);
+                      return (
+                        <button 
+                          key={tag} 
+                          onClick={() => toggleDiscipline(tag)}
+                          className={cn(
+                            "px-3.5 py-1.5 border text-xs rounded-full transition-all whitespace-nowrap shrink-0",
+                            isSelected 
+                              ? "bg-black border-black text-white font-medium shadow-sm" 
+                              : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600"
+                          )}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] xl:grid-cols-[1fr_360px] gap-10 xl:gap-16">
           
           {/* Left Column: Feed */}
           <div>
@@ -1124,7 +1267,152 @@ export function Community() {
             </div>
           </div>
           
-        </div>
+          </div>
+          </>
+        ) : (
+          <div className="w-full">
+            {/* 分类筛选 */}
+            <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
+              {AVATAR_CATEGORIES.map((category) => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedAvatarCategory(category)}
+                  className={cn(
+                    "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+                    selectedAvatarCategory === category
+                      ? "bg-black text-white"
+                      : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                  )}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            {/* 数字分身卡片网格 */}
+            {AVATARS_GALLERY.filter((avatar) => selectedAvatarCategory === '全部' || avatar.category === selectedAvatarCategory).length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {AVATARS_GALLERY
+                  .filter((avatar) => selectedAvatarCategory === '全部' || avatar.category === selectedAvatarCategory)
+                  .map((avatar) => (
+                    <div
+                      key={avatar.id}
+                      className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-xl hover:border-blue-200 transition-all duration-300 group cursor-pointer"
+                    >
+                    {/* 头像区域 */}
+                    <div className="relative mb-4">
+                      <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center mx-auto shadow-sm">
+                        <img
+                          src={avatar.avatar}
+                          alt={avatar.name}
+                          className="w-16 h-16 rounded-full"
+                        />
+                      </div>
+                      <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {avatar.category}
+                      </div>
+                    </div>
+                    {/* 信息区域 */}
+                    <div className="text-center mb-4">
+                      <div className="flex items-center justify-center gap-1.5 mb-1">
+                        <h3 className="text-lg font-bold text-gray-900">{avatar.name}</h3>
+                        <span className="text-xs text-gray-400">· {avatar.expertName}的分身</span>
+                      </div>
+                      <p className="text-sm text-blue-600 font-medium mb-2">{avatar.title}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">{avatar.description}</p>
+                    </div>
+                    {/* 评分和使用次数 */}
+                    <div className="flex items-center justify-center gap-4 mb-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <span className="font-medium text-gray-700">{avatar.rating}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-blue-500" />
+                        <span>{avatar.usageCount} 次使用</span>
+                      </div>
+                    </div>
+                    {/* 添加按钮 */}
+                    {(() => {
+                      const targetId = `new_e_${avatar.id}`;
+                      const isAdded = addedAvatarIds.includes(targetId);
+                      return (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const existingStr = localStorage.getItem('addedAvatars');
+                            const existing = existingStr ? JSON.parse(existingStr) : [];
+                            
+                            if (!isAdded) {
+                              const newAvatar = {
+                                id: targetId,
+                                name: `${avatar.expertName} (${avatar.title})`,
+                                type: 'expert',
+                                avatar: avatar.avatar
+                              };
+                              localStorage.setItem('addedAvatars', JSON.stringify([...existing, newAvatar]));
+                              window.dispatchEvent(new CustomEvent('avatars-changed'));
+                              window.dispatchEvent(new CustomEvent('avatar-added')); // for compatibility
+                              
+                              const toast = document.createElement('div');
+                              toast.className = 'fixed bottom-4 right-4 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm shadow-xl z-50 animate-in slide-in-from-bottom-5';
+                              toast.innerHTML = `已将 <strong>${avatar.expertName}</strong> 添加到您的分身列表`;
+                              document.body.appendChild(toast);
+                              setTimeout(() => {
+                                toast.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-5');
+                                setTimeout(() => document.body.removeChild(toast), 300);
+                              }, 2000);
+                            } else {
+                              const filtered = existing.filter((a: any) => a.id !== targetId);
+                              localStorage.setItem('addedAvatars', JSON.stringify(filtered));
+                              window.dispatchEvent(new CustomEvent('avatars-changed'));
+                              window.dispatchEvent(new CustomEvent('avatar-added')); // for compatibility
+                              
+                              const toast = document.createElement('div');
+                              toast.className = 'fixed bottom-4 right-4 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm shadow-xl z-50 animate-in slide-in-from-bottom-5';
+                              toast.innerHTML = `已取消添加 <strong>${avatar.expertName}</strong>`;
+                              document.body.appendChild(toast);
+                              setTimeout(() => {
+                                toast.classList.add('animate-out', 'fade-out', 'slide-out-to-bottom-5');
+                                setTimeout(() => document.body.removeChild(toast), 300);
+                              }, 2000);
+                            }
+                          }}
+                          className={cn(
+                            "w-full py-2.5 text-sm font-bold rounded-xl transition-all",
+                            isAdded
+                              ? "bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-100"
+                              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          )}
+                        >
+                          {isAdded ? '✓ 已添加 (取消)' : '➕ 添加分身'}
+                        </button>
+                      );
+                    })()}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                  <Bot className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">哎呀，这里还是片荒芜的沙漠 🌵</h3>
+                <p className="text-gray-500 text-sm mb-6 max-w-md text-center">
+                  这位领域大牛似乎还在闭关修炼，暂时没有放出自己的数字分身。
+                  不如你来做个表率？把你的智慧沉淀下来，让 AI 替你接客赚外快！
+                </p>
+                <button
+                  onClick={() => navigate('/expert/profile', { state: { defaultTab: '数字分身' } })}
+                  className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-sm flex items-center gap-2"
+                >
+                  <Bot className="w-4 h-4" />
+                  去发布我的数字分身
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
         </>
       )}

@@ -34,8 +34,8 @@ export function UserProfile() {
   const location = useLocation();
   // Ensure we always have a valid default tab
   const [activeTab, setActiveTab] = useState(() => {
-    const state = location.state as { activeTab?: string } | null;
-    return state?.activeTab || '身份与背书';
+    const state = location.state as { activeTab?: string, defaultTab?: string } | null;
+    return state?.defaultTab || state?.activeTab || '身份与背书';
   });
   const [bio, setBio] = useState('');
   const [showTech, setShowTech] = useState(true);
@@ -257,7 +257,7 @@ export function UserProfile() {
       <div className="flex-1 min-w-0 bg-transparent space-y-6 flex flex-col">
         {/* Tabs Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-6 pt-2 flex items-center gap-8 overflow-x-auto no-scrollbar">
-          {['身份与背书', '资产与成就', '内容与知识库', '隐私与偏好'].map(tab => (
+          {['身份与背书', '数字分身', '资产与成就', '专业内容与创作', '隐私与偏好'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -923,10 +923,9 @@ export function UserProfile() {
           </div>
         )}
 
-        {/* 3. 内容与知识库 (Content & Knowledge Base) - Combined */}
-        {activeTab === '内容与知识库' && (
+        {/* 2.5 数字分身 (Digital Avatar) */}
+        {activeTab === '数字分身' && (
           <div className="space-y-6 flex-1 flex flex-col">
-            
             <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-xl border border-indigo-100 p-6 shadow-sm relative overflow-hidden">
               <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-indigo-200/20 rounded-full blur-2xl"></div>
               <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.03]">
@@ -976,22 +975,13 @@ export function UserProfile() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            <div id="personal-knowledge-base" className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1 scroll-mt-6 flex flex-col items-center justify-center text-center py-12">
-              <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mb-4">
-                <BookOpen className="w-8 h-8 text-blue-500" />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 mb-2">知识库已升级</h3>
-              <p className="text-gray-500 mb-6 max-w-sm">您的个人知识库已迁移至专属的独立工作区，支持分栏阅读和沉浸式对话分析。</p>
-              <button 
-                onClick={() => window.location.href = '/expert/knowledge'}
-                className="px-6 py-2.5 bg-black text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors shadow-sm"
-              >
-                前往知识库工作区
-              </button>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm">
+        {/* 3. 专业内容与创作 (Professional Content & Creation) */}
+        {activeTab === '专业内容与创作' && (
+          <div className="space-y-6 flex-1 flex flex-col">
+            <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-900">代表作与专业输出</h3>
                 <button className="text-sm text-blue-600 font-medium hover:underline">去发布</button>
