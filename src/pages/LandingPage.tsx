@@ -1,55 +1,95 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, Brain, Code, Zap, Globe, Cpu, Languages, X, Lock } from 'lucide-react';
+import { ArrowRight, Sparkles, Brain, Code, Zap, Globe, Cpu, Languages, X, Lock, Mail, Phone, KeyRound, ChevronDown } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
+import { supabase } from '../lib/supabase';
 
 export function LandingPage() {
   const navigate = useNavigate();
   const { t, language, toggleLanguage } = useLanguage();
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authMode, setAuthMode] = useState<'phone' | 'email'>('phone');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleExpertClick = (e: React.MouseEvent) => {
+  const handleExpertClick = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setShowPasswordModal(true);
+    
+    // 校验真实的 Supabase 登录态
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (session) {
+      navigate('/expert/unified-chat');
+    } else {
+      setShowAuthModal(true);
+    }
   };
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsVerifying(true);
     setError('');
 
     try {
-      const baseUrl = import.meta.env.BASE_URL;
-      const apiUrl = baseUrl.endsWith('/') ? `${baseUrl}api/verify-admin` : `${baseUrl}/api/verify-admin`;
-      
-      const res = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ password })
-      });
+      let credentials;
+      if (authMode === 'phone') {
+        if (!/^\d{11}$/.test(identifier)) {
+          setError('请输入有效的11位手机号');
+          setIsVerifying(false);
+          return;
+        }
+        credentials = { phone: '+86' + identifier, password };
+      } else {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+          setError('请输入有效的邮箱地址');
+          setIsVerifying(false);
+          return;
+        }
+        credentials = { email: identifier, password };
+      }
 
-      const data = await res.json();
-      if (data.success) {
-        localStorage.setItem('admin_authenticated', 'true');
-        setShowPasswordModal(false);
-        navigate('/expert/workbench');
-      } else {
-        setError(data.error || '密码错误');
+      // 1. 先尝试登录
+      let { data, error } = await supabase.auth.signInWithPassword(credentials);
+
+      // 2. 如果报错是无效凭证（账号不存在或密码错误），尝试自动注册
+      if (error && error.message.includes('Invalid login credentials')) {
+        const signUpRes = await supabase.auth.signUp(credentials);
+        
+        if (signUpRes.error) {
+          // 如果注册报错说已存在，说明确实是密码错误
+          if (signUpRes.error.message.includes('already registered') || signUpRes.error.message.includes('already exists')) {
+            setError('密码错误，请重试');
+          } else {
+            setError(signUpRes.error.message);
+          }
+          setIsVerifying(false);
+          return;
+        } else {
+          // 注册成功，使用注册返回的数据
+          data = signUpRes.data;
+          error = null;
+        }
+      } else if (error) {
+        // 其他未知错误直接抛出
+        setError(error.message);
+        setIsVerifying(false);
+        return;
       }
-    } catch (err) {
-      if (password === 'trae') {
+
+      if (data && data.user) {
+        // 验证/注册成功
         localStorage.setItem('admin_authenticated', 'true');
-        setShowPasswordModal(false);
-        navigate('/expert/workbench');
+        localStorage.setItem('taUser', JSON.stringify(data.user));
+        setShowAuthModal(false);
+        navigate('/expert/unified-chat');
       } else {
-        setError('密码错误');
+        setError('验证失败，请重试。');
       }
+    } catch (err: any) {
+      setError(err.message || '发生未知错误');
     } finally {
       setIsVerifying(false);
     }
@@ -57,21 +97,24 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-foreground overflow-hidden font-sans selection:bg-lab-yellow selection:text-black">
-      {/* Password Modal */}
-      {showPasswordModal && (
+      {/* Auth Modal */}
+      {showAuthModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Lock className="w-4 h-4 text-purple-600" />
+                <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Lock className="w-4 h-4 text-blue-600" />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900">访问受限</h3>
+                <h3 className="text-lg font-bold text-gray-900">
+                  登录 / 注册
+                </h3>
               </div>
               <button 
                 onClick={() => {
-                  setShowPasswordModal(false);
+                  setShowAuthModal(false);
                   setPassword('');
+                  setIdentifier('');
                   setError('');
                 }} 
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
@@ -79,27 +122,88 @@ export function LandingPage() {
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleVerify} className="p-6 space-y-4">
-              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
-                🤫 嘘... 你是来打探商业机密的吗？<br />
-                当前为内部测试 Demo 阶段，仅对受邀专家开放。<br />
-                如有需要请联系：<a href="mailto:likejin2019@gmail.com" className="text-blue-600 hover:underline">likejin2019@gmail.com</a>
-              </p>
+            
+            {/* Tabs */}
+            <div className="flex px-6 pt-4 border-b border-gray-100 gap-6">
+              <button
+                type="button"
+                className={cn("pb-3 text-sm font-bold border-b-2 transition-colors relative top-[1px]", authMode === 'phone' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800")}
+                onClick={() => { setAuthMode('phone'); setIdentifier(''); setError(''); }}
+              >
+                手机号登录
+              </button>
+              <button
+                type="button"
+                className={cn("pb-3 text-sm font-bold border-b-2 transition-colors relative top-[1px]", authMode === 'email' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800")}
+                onClick={() => { setAuthMode('email'); setIdentifier(''); setError(''); }}
+              >
+                邮箱登录
+              </button>
+            </div>
+
+            <form onSubmit={handleAuth} className="p-6 space-y-4 pt-4">
               <div>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="请输入密码"
-                  className={cn(
-                    "w-full px-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none transition-colors",
-                    error ? "border-red-300 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-purple-400 focus:ring-2 focus:ring-purple-100"
-                  )}
-                  autoFocus
-                />
+                {authMode === 'phone' ? (
+                  <div className={cn(
+                    "flex rounded-xl overflow-hidden border bg-gray-50 transition-colors focus-within:bg-white",
+                    error ? "border-red-300 focus-within:ring-2 focus-within:ring-red-100" : "border-gray-200 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100"
+                  )}>
+                    <div className="flex items-center justify-center pl-4 pr-3 bg-transparent border-r border-gray-200 text-sm font-medium text-gray-700 select-none">
+                      +86 <ChevronDown className="w-4 h-4 ml-1 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={identifier}
+                      onChange={(e) => {
+                        setIdentifier(e.target.value.replace(/\D/g, '').slice(0, 11));
+                        setError('');
+                      }}
+                      placeholder="请输入手机号"
+                      className="w-full px-3 py-3 bg-transparent text-sm focus:outline-none"
+                      autoFocus
+                    />
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      value={identifier}
+                      onChange={(e) => {
+                        setIdentifier(e.target.value);
+                        setError('');
+                      }}
+                      placeholder="请输入邮箱"
+                      className={cn(
+                        "w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none transition-colors",
+                        error ? "border-red-300 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                      )}
+                      autoFocus
+                    />
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <KeyRound className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError('');
+                    }}
+                    placeholder="请输入密码"
+                    className={cn(
+                      "w-full pl-10 pr-4 py-3 bg-gray-50 border rounded-xl text-sm focus:outline-none transition-colors",
+                      error ? "border-red-300 focus:ring-2 focus:ring-red-100" : "border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+                    )}
+                  />
+                </div>
                 {error && (
                   <p className="text-xs text-red-500 mt-2 font-medium">{error}</p>
                 )}
@@ -107,7 +211,7 @@ export function LandingPage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={!password.trim() || isVerifying}
+                  disabled={!password.trim() || !identifier.trim() || isVerifying}
                   className="w-full py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {isVerifying ? (
@@ -124,11 +228,17 @@ export function LandingPage() {
       
       {/* Navbar */}
       <nav className="fixed top-0 left-0 w-full z-50 px-6 py-4 flex justify-between items-center backdrop-blur-xl bg-white/50 border-b border-white/20">
-        <div className="flex items-center gap-2 cursor-pointer group/logo">
-          <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center shadow-lg shadow-black/20 shrink-0 relative overflow-hidden group-hover/logo:scale-[1.05] group-hover/logo:rotate-3 transition-all duration-300">
-            <svg className="w-[14px] h-[14px]" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M12 4L4 18H20L12 4Z" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
-              <circle cx="12" cy="13" r="3.5" fill="#3B82F6"/>
+        <div className="flex items-center gap-3 cursor-pointer group/logo">
+          <div className="flex items-center justify-center p-0.5 relative overflow-hidden group-hover/logo:scale-[1.05] group-hover/logo:rotate-3 transition-all duration-300">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="logoGradientLanding" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="#EC4899" />
+                  <stop offset="100%" stopColor="#3B82F6" />
+                </linearGradient>
+              </defs>
+              <path d="M12 2L2 20h20L12 2z" stroke="url(#logoGradientLanding)" strokeWidth="3" strokeLinejoin="round"/>
+              <circle cx="12" cy="14" r="4" fill="url(#logoGradientLanding)"/>
             </svg>
           </div>
           <span className="font-bold text-lg tracking-tight">{t.common.appName}</span>
@@ -141,7 +251,10 @@ export function LandingPage() {
             <Languages className="w-3.5 h-3.5" />
             {language === 'zh' ? 'English' : '中文'}
           </button>
-          <button className="px-6 py-2.5 rounded-full bg-black text-white text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-black/20">
+          <button 
+            onClick={() => setShowAuthModal(true)}
+            className="px-6 py-2.5 rounded-full bg-black text-white text-sm font-bold hover:scale-105 transition-all shadow-lg shadow-black/20"
+          >
             {t.common.login}
           </button>
         </div>
@@ -196,21 +309,6 @@ export function LandingPage() {
               {t.landing.hero.ctaExpert}
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
-            
-            <div className="relative group/requester-btn inline-block">
-              <button
-                disabled
-                className="w-full sm:w-auto px-8 py-4 bg-gray-200 text-gray-400 border border-transparent rounded-full text-sm font-bold flex items-center justify-center cursor-not-allowed"
-              >
-                {t.landing.hero.ctaRequester}
-              </button>
-              
-              {/* Tooltip */}
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover/requester-btn:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                该模块正在紧锣密鼓地开发中，预期下周开放
-                <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></div>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -274,8 +372,8 @@ export function LandingPage() {
               <Zap className="w-7 h-7 text-lab-yellow fill-current" />
             </div>
             <div className="relative z-10">
-              <div className="text-6xl font-display font-black mb-2 text-lab-yellow tracking-tighter">{t.landing.features.card2.val}</div>
-              <div className="text-gray-400 font-bold text-lg">{t.landing.features.card2.desc}</div>
+              <div className="text-3xl font-display font-bold mb-4 text-lab-yellow">{t.landing.features.card2.title}</div>
+              <div className="text-gray-400 font-medium text-lg leading-relaxed">{t.landing.features.card2.desc}</div>
             </div>
           </div>
 

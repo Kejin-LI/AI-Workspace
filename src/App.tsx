@@ -16,6 +16,9 @@ import { RequesterProjects } from './pages/RequesterProjects';
 import { TaskHall } from './pages/TaskHall';
 import { ModelLeaderboard } from './pages/ModelLeaderboard';
 import { ProjectProvider } from './contexts/ProjectContext';
+import { Feedback } from './pages/Feedback';
+
+import { UnifiedChat } from './pages/UnifiedChat';
 
 // Placeholder components for other pages
 const Placeholder = ({ title }: { title: string }) => (
@@ -26,7 +29,7 @@ const Placeholder = ({ title }: { title: string }) => (
 );
 
 const ProtectedExpertRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = localStorage.getItem('admin_authenticated') === 'true';
+  const isAuthenticated = localStorage.getItem('admin_authenticated') === 'true' || localStorage.getItem('taUser') !== null;
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
@@ -39,6 +42,9 @@ function App() {
       <Routes>
         {/* Public Landing Page */}
         <Route path="/" element={<LandingPage />} />
+
+        {/* Standalone Feedback Page */}
+        <Route path="/feedback" element={<Feedback />} />
 
         {/* Notebook Route */}
         <Route path="/notebook/:folderId" element={<NotebookPage />} />
@@ -56,6 +62,7 @@ function App() {
         <Route path="/expert" element={<ProtectedExpertRoute><DashboardLayout /></ProtectedExpertRoute>}>
           <Route index element={<TaskHall />} />
           <Route path="workbench" element={<Workbench />} />
+          <Route path="unified-chat" element={<UnifiedChat />} />
           <Route path="leaderboard" element={<ModelLeaderboard />} />
           <Route path="sandbox" element={<Sandbox />} />
           <Route path="market" element={<Market />} />

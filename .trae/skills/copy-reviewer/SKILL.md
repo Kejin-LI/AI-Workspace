@@ -1,0 +1,1 @@
+../../../skills/copy-reviewer/SKILL.md

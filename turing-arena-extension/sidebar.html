@@ -1,0 +1,2572 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Turing Arena Probe</title>
+  <style>
+    :root {
+      --primary-color: #6B4EFF; /* Sider Purple */
+      --primary-hover: #5835E5;
+      --bg-color: #ffffff;
+      --sidebar-bg: #F9FAFB;
+      --text-main: #111827;
+      --text-muted: #6B7280;
+      --border-color: #E5E7EB;
+      --icon-inactive: #9CA3AF;
+      --dropdown-hover: #F3F4F6;
+      --dropdown-active: #EDE9FE;
+      --card-bg: #ffffff;
+      --input-bg: #ffffff;
+      --input-border: #E5E7EB;
+      --chat-user-bg: #F3F4F6;
+      --chat-ai-bg: transparent;
+      --popover-bg: #ffffff;
+      --popover-border: #E5E7EB;
+      --popover-hover: #F3F4F6;
+      --modal-bg: #ffffff;
+      --modal-overlay: rgba(0, 0, 0, 0.4);
+      --btn-secondary-bg: #F3F4F6;
+      --btn-secondary-text: #374151;
+    }
+
+    /* System Dark Mode Support for instant paint */
+    @media (prefers-color-scheme: dark) {
+      body:not(.light-theme) {
+        --bg-color: #111827;
+        --sidebar-bg: #1F2937;
+        --text-main: #F9FAFB;
+        --text-muted: #9CA3AF;
+        --border-color: #374151;
+        --icon-inactive: #9CA3AF;
+        --dropdown-hover: #374151;
+        --dropdown-active: #374151;
+        --card-bg: #1F2937;
+        --input-bg: #111827;
+        --input-border: #374151;
+        --chat-user-bg: #374151;
+        --chat-ai-bg: transparent;
+        --popover-bg: #1F2937;
+        --popover-border: #374151;
+        --popover-hover: #374151;
+        --modal-bg: #1F2937;
+        --modal-overlay: rgba(0, 0, 0, 0.7);
+        --btn-secondary-bg: #374151;
+        --btn-secondary-text: #F9FAFB;
+        --badge-dom-bg: rgba(59, 130, 246, 0.2);
+        --badge-dom-text: #93C5FD;
+        --badge-net-req-bg: rgba(245, 158, 11, 0.2);
+        --badge-net-req-text: #FCD34D;
+        --badge-net-res-bg: rgba(16, 185, 129, 0.2);
+        --badge-net-res-text: #6EE7B7;
+      }
+    }
+
+    body.dark-theme {
+      --bg-color: #111827;
+      --sidebar-bg: #1F2937;
+      --text-main: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --border-color: #374151;
+      --icon-inactive: #9CA3AF;
+      --dropdown-hover: #374151;
+      --dropdown-active: #374151;
+      --card-bg: #1F2937;
+      --input-bg: #111827;
+      --input-border: #374151;
+      --chat-user-bg: #374151;
+      --chat-ai-bg: transparent;
+      --popover-bg: #1F2937;
+      --popover-border: #374151;
+      --popover-hover: #374151;
+      --modal-bg: #1F2937;
+      --modal-overlay: rgba(0, 0, 0, 0.7);
+      --btn-secondary-bg: #374151;
+      --btn-secondary-text: #F9FAFB;
+      --badge-dom-bg: rgba(59, 130, 246, 0.2);
+      --badge-dom-text: #93C5FD;
+      --badge-net-req-bg: rgba(245, 158, 11, 0.2);
+      --badge-net-req-text: #FCD34D;
+      --badge-net-res-bg: rgba(16, 185, 129, 0.2);
+      --badge-net-res-text: #6EE7B7;
+    }
+
+    .auth-input:focus {
+      border-color: #6B4EFF !important;
+    }
+    #presetCrowdtestBtn:hover {
+      background-color: var(--btn-secondary-bg) !important;
+      border-color: #D1D5DB !important;
+    }
+
+    .chat-url-attachment {
+      display: inline-flex;
+      align-items: center;
+      background-color: rgba(0,0,0,0.05);
+      padding: 2px 6px;
+      border-radius: 6px;
+      border: 1px solid rgba(0,0,0,0.1);
+      margin: 2px 4px;
+      cursor: pointer;
+      vertical-align: middle;
+      position: relative;
+    }
+    .chat-url-attachment .chat-url-remove-btn {
+      display: none;
+      position: absolute;
+      inset: 0;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0,0,0,0.8);
+      color: white;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+    .chat-url-attachment.is-editable:hover .chat-url-remove-btn {
+      display: flex;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ==========================================
+ * Context Tags for Recording
+ * ========================================== */
+    .context-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      background: rgba(16, 185, 129, 0.1);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 6px;
+      font-size: 12px;
+      font-family: monospace;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .context-tag:hover {
+      background: rgba(16, 185, 129, 0.15);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .context-tag.active {
+      background: rgba(37, 99, 235, 0.1);
+      color: #2563eb;
+      border-color: rgba(37, 99, 235, 0.2);
+    }
+
+    .context-tag.active:hover {
+      background: rgba(37, 99, 235, 0.15);
+      border-color: rgba(37, 99, 235, 0.3);
+    }
+
+    .context-tag.error {
+      background: rgba(239, 68, 68, 0.1);
+      color: #ef4444;
+      border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+    }
+
+    @keyframes pulse-blue {
+      0% { box-shadow: 0 0 0 0 rgba(107, 78, 255, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(107, 78, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(107, 78, 255, 0); }
+    }
+
+    @keyframes pulse-cyber-yellow {
+      0% { box-shadow: inset 0 0 0 0 rgba(234, 179, 8, 0.5), 0 0 0 0 rgba(234, 179, 8, 0.5); }
+      50% { box-shadow: inset 0 0 0 2px rgba(234, 179, 8, 0.8), 0 0 10px 2px rgba(234, 179, 8, 0.8); }
+      100% { box-shadow: inset 0 0 0 0 rgba(234, 179, 8, 0), 0 0 0 0 rgba(234, 179, 8, 0); }
+    }
+
+    .flash-warning {
+      animation: pulse-cyber-yellow 1.5s ease-out;
+    }
+
+    /* Custom Tooltip */
+    .custom-tooltip {
+      position: relative;
+      display: inline-flex;
+    }
+    .custom-tooltip:hover::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      bottom: calc(100% + 8px);
+      right: -8px; /* Align to the right to prevent clipping by right edge */
+      background: #111827; /* Darker, sleeker background */
+      color: #F9FAFB;
+      padding: 8px 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      white-space: pre-wrap;
+      z-index: 10000;
+      box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+      pointer-events: none;
+      line-height: 1.5;
+      text-align: left;
+      min-width: max-content; /* Ensure text doesn't wrap awkwardly */
+    }
+    .custom-tooltip:hover::before {
+      content: '';
+      position: absolute;
+      bottom: calc(100% + 2px);
+      right: 8px; /* Arrow pointing to the right side */
+      border: 6px solid transparent;
+      border-top-color: #111827;
+      pointer-events: none;
+      z-index: 10000;
+    }
+
+    /* Filter Pill Styles */
+    .traj-filter-container {
+      display: flex;
+      gap: 8px;
+      padding: 12px 20px; /* Reduced top padding */
+      margin-top: -20px; /* Offset body padding */
+      margin-left: -20px;
+      margin-right: -20px;
+      margin-bottom: 12px;
+      overflow-x: auto;
+      white-space: nowrap;
+      border-bottom: 1px solid var(--border-color);
+      /* Make it sticky */
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: var(--sidebar-bg); /* Match detail-body background */
+      /* Hide scrollbar */
+      scrollbar-width: none;
+    }
+    .traj-filter-container::-webkit-scrollbar {
+      display: none;
+    }
+    .traj-filter-pill {
+      padding: 6px 12px;
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border-radius: 16px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+    }
+    .traj-filter-pill:hover {
+      opacity: 0.9;
+    }
+    .traj-filter-pill.active {
+      background: #EDE9FE;
+      color: var(--primary-color);
+      border-color: #C4B5FD;
+    }
+
+    /* Back to Top Button */
+    .back-to-top-btn {
+      position: absolute;
+      bottom: 24px;
+      right: 24px;
+      width: 40px;
+      height: 40px;
+      background-color: var(--primary-color);
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(107, 78, 255, 0.3);
+      z-index: 20;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+    }
+    .back-to-top-btn.visible {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+    .back-to-top-btn:hover {
+      background-color: #5a3ee6;
+      transform: translateY(-2px);
+    }
+    .back-to-top-btn svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
+      background-color: var(--bg-color);
+      overflow: hidden;
+    }
+
+    /* Model Selector Dropdown Styles */
+    .ta-model-dropdown {
+      position: absolute;
+      z-index: 2147483648;
+      background: var(--bg-color);
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0,0,0,0.05);
+      width: 200px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: none;
+      flex-direction: column;
+      overflow-y: auto;
+      max-height: 400px;
+      padding: 6px 0;
+    }
+    .ta-model-dropdown.visible {
+      display: flex;
+    }
+    .ta-model-group-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      padding: 6px 12px 2px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .ta-model-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      cursor: pointer;
+      color: var(--text-main);
+      font-size: 13px;
+      transition: background-color 0.15s;
+      margin: 1px 6px;
+      border-radius: 6px;
+    }
+    .ta-model-item:hover {
+      background-color: var(--btn-secondary-bg);
+    }
+    .ta-model-item.active {
+      background-color: #EEF2FF;
+      color: #4F46E5;
+    }
+    .ta-model-icon {
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+    .ta-model-item-details {
+      display: flex;
+      flex-direction: column;
+    }
+    .ta-model-item-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .app-container {
+      display: flex;
+      flex-direction: row-reverse;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* Right Nav Bar */
+    .right-nav {
+      width: 56px;
+      background-color: var(--sidebar-bg);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px 0;
+      gap: 16px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      scrollbar-width: none;
+    }
+    .right-nav::-webkit-scrollbar { display: none; }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      width: 44px;
+      padding: 6px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      color: var(--icon-inactive);
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    
+    .nav-item:hover {
+      background-color: var(--dropdown-hover);
+      color: var(--text-main);
+    }
+
+    .nav-item.active {
+      background-color: var(--dropdown-active);
+      color: var(--primary-color);
+    }
+    .nav-item.active svg {
+      color: var(--primary-color);
+      stroke: var(--primary-color);
+      fill: none;
+    }
+    .nav-item.active .logo-icon circle { fill: var(--primary-color); }
+    .nav-item.active .logo-icon path { stroke: var(--primary-color); }
+
+    .profile-menu-item:hover {
+      background-color: var(--dropdown-hover) !important;
+    }
+    .profile-menu-item:hover span {
+      color: var(--text-main) !important;
+    }
+
+    .nav-label { font-size: 9px; font-weight: 500; text-align: center; }
+    .nav-item svg { width: 20px; height: 20px; }
+    
+    .nav-record-indicator {
+      position: absolute;
+      top: 4px;
+      right: 8px;
+      width: 6px;
+      height: 6px;
+      background-color: #ef4444;
+      border-radius: 50%;
+      display: none;
+      animation: nav-pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    .nav-record-indicator.active {
+      display: block;
+    }
+    @keyframes nav-pulse-red {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .nav-spacer { flex-grow: 1; }
+
+    /* Crowdtest specific styles */
+    .ct-score-btn.selected {
+      background: var(--primary-color) !important;
+      color: white !important;
+      border-color: var(--primary-color) !important;
+    }
+    
+    .ct-claim-btn.claimed {
+      background: var(--primary-color) !important;
+      color: white !important;
+      border: 1px solid var(--primary-color) !important;
+    }
+    
+    .ct-claim-btn.submitted {
+      background: var(--btn-secondary-bg) !important;
+      color: #9CA3AF !important;
+      border: 1px solid #E5E7EB !important;
+      pointer-events: none;
+    }
+
+    /* Delete button hover logic */
+    .note-item:hover .delete-btn {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+    }
+    .delete-btn:hover {
+      background: rgba(239, 68, 68, 0.1) !important;
+    }
+    
+    .ct-question-id-pill {
+      display: inline-block;
+      background: #EDE9FE;
+      color: #6B4EFF;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .avatar {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: #C2410C;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      margin-top: 8px;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+      overflow-y: auto;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    /* Settings Strip & Capability Cards */
+    .capability-card {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      background-color: var(--card-bg);
+    }
+    .capability-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .capability-title {
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .capability-title svg {
+      width: 16px;
+      height: 16px;
+      color: var(--primary-color);
+    }
+    
+    .settings-strip {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .control-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--input-border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      background-color: var(--input-bg);
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+    }
+    .control-box:hover { border-color: var(--border-color); }
+    
+    .control-trigger {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-grow: 1;
+    }
+
+    .control-trigger svg { width: 14px; height: 14px; color: var(--text-muted); }
+    .control-trigger .arrow-icon { margin-left: auto; flex-shrink: 0; }
+    .control-trigger .label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100px;
+    }
+
+    .mic-icon-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px;
+      border-radius: 4px;
+      transition: background-color 0.2s;
+      width: 20px;
+      height: 20px;
+    }
+    .mic-icon-wrapper:hover {
+      background-color: #E5E7EB;
+    }
+    
+    /* The custom animated mic icon */
+    .mic-custom {
+      width: 14px;
+      height: 14px;
+      position: relative;
+    }
+    
+    .mic-outline {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+    }
+    
+    .mic-fill-container {
+      position: absolute;
+      bottom: 3px; /* Align with the inner pill of the mic */
+      left: 4px;
+      width: 6px;
+      height: 8px; /* Max height of the inner pill */
+      overflow: hidden;
+      z-index: 1;
+      border-radius: 3px;
+    }
+    
+    .mic-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 20%; /* Will be animated via JS */
+      background-color: #10B981; /* Sider Green */
+      transition: height 0.1s ease;
+    }
+
+    /* Custom Toggle Switch */
+    .toggle-switch {
+      width: 30px;
+      height: 18px;
+      background-color: #D1D5DB;
+      border-radius: 10px;
+      position: relative;
+      margin-left: 8px;
+      flex-shrink: 0;
+      transition: background-color 0.2s;
+    }
+    .toggle-switch.active { background-color: var(--primary-color); }
+    .toggle-switch .toggle-knob {
+      width: 14px;
+      height: 14px;
+      background-color: var(--bg-color);
+      border-radius: 50%;
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      transition: left 0.2s;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .toggle-switch.active .toggle-knob { left: 14px; }
+
+    /* Dropdown Menus */
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0;
+      background-color: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      z-index: 100;
+      min-width: 100%;
+      padding: 4px;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .dropdown-menu.show { display: flex; }
+    
+    .dropdown-item {
+      padding: 8px 10px;
+      border-radius: 6px;
+      color: var(--text-main);
+      font-size: 13px;
+      white-space: nowrap;
+      transition: background-color 0.1s;
+    }
+    .dropdown-item:hover { background-color: var(--dropdown-hover); }
+    .dropdown-item.active { background-color: var(--dropdown-active); color: var(--primary-color); }
+
+    .icon-btn {
+      padding: 7px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      cursor: pointer;
+      background: var(--bg-color);
+    }
+    .icon-btn svg { width: 14px; height: 14px; }
+
+    /* Main Action Button */
+    .btn-primary {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 24px;
+    }
+
+    .btn-primary:hover { background-color: var(--primary-hover); }
+    .btn-primary svg { width: 16px; height: 16px; }
+
+    .btn-stop {
+      background-color: #EF4444;
+      color: white;
+      display: none;
+      animation: pulse 2s infinite;
+    }
+    .btn-stop:hover { background-color: #DC2626; }
+
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* Sub Header */
+    .sub-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .sub-header h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .sub-actions {
+      display: flex;
+      gap: 12px;
+      color: var(--icon-inactive);
+    }
+    .sub-actions svg { width: 14px; height: 14px; cursor: pointer; }
+
+    /* Empty State */
+    .empty-state {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-size: 12px;
+      gap: 12px;
+    }
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      opacity: 0.8;
+    }
+
+    /* Notes List */
+    .notes-list {
+      display: none;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .note-item {
+      padding: 16px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      background-color: var(--sidebar-bg);
+      transition: all 0.2s ease;
+    }
+    .note-item:hover { 
+      border-color: var(--icon-inactive); 
+      background-color: var(--dropdown-hover); 
+      box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    
+    .note-info { display: flex; flex-direction: column; gap: 4px; }
+    .note-title { font-size: 14px; font-weight: 700; color: var(--text-main); }
+    .note-meta { font-size: 12px; color: var(--text-muted); }
+    
+    .note-actions .download-btn {
+      padding: 6px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .note-actions .download-btn:hover {
+      background-color: #E5E7EB;
+      color: var(--text-main);
+    }
+    .note-actions svg { width: 16px; height: 16px; }
+
+    /* Detail View Overlay */
+    .detail-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .detail-overlay.open {
+      transform: translateX(0);
+    }
+    
+    .video-fullscreen-mode {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99999 !important;
+      border-radius: 0 !important;
+      max-width: none !important;
+      max-height: none !important;
+      background: #000 !important;
+    }
+    
+    .detail-header {
+      display: flex;
+      align-items: center;
+      padding: 16px 20px; /* Reduced vertical padding slightly */
+      border-bottom: 1px solid var(--border-color);
+      gap: 12px;
+      background-color: var(--bg-color); /* Ensure header has a solid background */
+      position: relative;
+      z-index: 11; /* Keep header above sticky tabs */
+    }
+    
+    .back-btn {
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .back-btn:hover { background-color: var(--btn-secondary-bg); color: var(--text-main); }
+    .back-btn svg { width: 20px; height: 20px; }
+    
+    .detail-title {
+      flex-grow: 1;
+      margin: 0;
+      font-size: 16px;
+      font-weight: 700;
+    }
+    
+    .detail-actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .detail-body {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background-color: var(--sidebar-bg);
+    }
+    
+    /* Timeline / Event Items */
+    .timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .event-card {
+      background: var(--bg-color);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    
+    .event-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    
+    .event-badge {
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .badge-dom { background-color: var(--badge-dom-bg, #DBEAFE); color: var(--badge-dom-text, #1D4ED8); }
+    .badge-net-req { background-color: var(--badge-net-req-bg, #FEF3C7); color: var(--badge-net-req-text, #1D4ED8); }
+    .badge-net-res { background-color: var(--badge-net-res-bg, #D1FAE5); color: var(--badge-net-res-text, #047857); }
+    
+    .event-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+    
+    .event-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-main);
+    }
+    
+    .detail-row {
+      display: flex;
+      gap: 8px;
+    }
+    .detail-label {
+      color: var(--text-muted);
+      min-width: 60px;
+      flex-shrink: 0;
+    }
+    .detail-value {
+      word-break: break-all;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 12px;
+      background-color: var(--dropdown-hover);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .detail-value.highlight {
+      background-color: var(--dropdown-active);
+      color: var(--primary-color);
+    }
+
+    /* Consent Modal */
+    @keyframes highlight-pulse {
+      0% { background-color: rgba(107, 78, 255, 0.0); }
+      15% { background-color: rgba(107, 78, 255, 0.15); }
+      100% { background-color: rgba(107, 78, 255, 0.0); }
+    }
+    .highlight-new-item {
+      animation: highlight-pulse 2s ease-in-out;
+    }
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: var(--modal-overlay);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-content {
+      background: var(--modal-bg);
+      border-radius: 12px;
+      padding: 20px;
+      width: 85%;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transform: translateY(20px);
+      transition: transform 0.2s;
+    }
+    .modal-overlay.show .modal-content {
+      transform: translateY(0);
+    }
+    .btn-secondary {
+      background: var(--btn-secondary-bg);
+      color: var(--btn-secondary-text);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-secondary:hover {
+      background: var(--dropdown-hover);
+    }
+
+      /* Global input placeholder styles */
+      input::placeholder, textarea::placeholder {
+        color: #9CA3AF !important;
+        opacity: 1; /* Override Firefox default opacity */
+      }
+      #view-chat {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        height: 100%;
+        box-sizing: border-box;
+      }
+      /* Ensure that when chat is active, main-content padding doesn't affect the full-bleed if we want, or keep it */
+      .chat-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .chat-header {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 12px 20px 0;
+        gap: 12px;
+      }
+      
+      .chat-header .icon-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s;
+      }
+      .chat-header .icon-btn:hover {
+        background: var(--btn-secondary-bg);
+        color: var(--text-main);
+      }
+      .chat-header .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+      
+      /* Header Top Tooltip Styles */
+      .header-tooltip-wrapper {
+        position: relative;
+        display: inline-flex;
+      }
+      .header-tooltip-content {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        top: calc(100% + 8px); /* space for arrow */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #111827; /* Always dark for tooltip */
+        color: #F9FAFB;
+        text-align: center;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px; /* Slightly larger text */
+        white-space: nowrap;
+        z-index: 100;
+        transition: opacity 0.2s, visibility 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        pointer-events: none;
+      }
+      .header-tooltip-content::after {
+        content: "";
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        margin-left: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: transparent transparent #111827 transparent;
+      }
+      .header-tooltip-wrapper:hover .header-tooltip-content {
+        visibility: visible;
+        opacity: 1;
+      }
+      .chat-greeting {
+        font-size: 28px;
+        font-weight: 700;
+        margin: 80px 0 8px 0;
+        color: var(--text-main);
+      }
+      .chat-subgreeting {
+        font-size: 16px;
+        font-weight: 600;
+        margin: 0 0 24px 0;
+        color: var(--text-main);
+      }
+      .chat-quick-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 24px;
+      }
+      .chat-action-btn {
+        background: var(--sidebar-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 20px;
+        padding: 6px 14px;
+        font-size: 13px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .chat-action-btn:hover {
+        background: var(--dropdown-hover);
+        border-color: var(--border-color);
+      }
+      .chat-action-btn svg { width: 14px; height: 14px; }
+      
+      .chat-guide-btn {
+        background: #D1FAE5; /* Light green */
+        border: none;
+        border-radius: 20px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        color: #065F46;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        align-self: flex-start;
+        transition: background 0.2s;
+      }
+      .chat-guide-btn:hover { background: #A7F3D0; }
+      .chat-guide-btn svg { width: 16px; height: 16px; }
+
+      .chat-bubble {
+        max-width: 85%;
+        border-radius: 12px;
+        font-size: 14px;
+        line-height: 1.6;
+        word-wrap: break-word;
+        white-space: pre-wrap;
+      }
+      .chat-bubble.user {
+        align-self: flex-end;
+        background-color: var(--chat-user-bg);
+        color: var(--text-main);
+        border-radius: 16px;
+        border-top-right-radius: 4px;
+        padding: 10px 14px;
+      }
+      .chat-bubble.ai {
+        align-self: flex-start;
+        background-color: var(--chat-ai-bg);
+        color: var(--text-main);
+        max-width: 100%;
+        padding: 10px 0;
+      }
+
+      /* Quote / Reference Styles */
+      .chat-quote {
+        border-left: 3px solid #D1D5DB;
+        padding-left: 12px;
+        margin-bottom: 12px;
+        color: var(--text-muted);
+        font-size: 13px;
+        line-height: 1.5;
+        position: relative;
+        cursor: default;
+      }
+      .chat-quote-text {
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      @keyframes chat-spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+      .chat-spinner-icon {
+        animation: chat-spin 1s linear infinite;
+      }
+      .chat-quote-tooltip {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        top: 0;
+        left: -320px; /* Show tooltip to the left of the quote */
+        width: 300px;
+        background: #374151;
+        color: #F9FAFB;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-size: 13px;
+        line-height: 1.6;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        z-index: 100;
+        transition: opacity 0.2s, visibility 0.2s;
+        pointer-events: none;
+      }
+      /* Triangle pointer for tooltip */
+      .chat-quote-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 16px;
+        right: -6px;
+        border-width: 6px 0 6px 6px;
+        border-style: solid;
+        border-color: transparent transparent transparent #374151;
+      }
+      .chat-quote:hover .chat-quote-tooltip {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .chat-bottom-area {
+        padding: 0 16px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .chat-hint {
+        background: #F0FDF4; /* Very light green */
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: 12px;
+        color: var(--text-main);
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        position: relative;
+      }
+      .chat-hint a { color: var(--primary-color); text-decoration: none; }
+      .chat-hint-close {
+        position: absolute;
+        top: 8px; right: 8px;
+        background: none; border: none; color: var(--text-muted); cursor: pointer;
+      }
+      .chat-hint-close svg { width: 14px; height: 14px; }
+
+      .chat-input-container {
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        background: var(--input-bg);
+        display: flex;
+        flex-direction: column;
+        overflow: visible;
+        transition: border-color 0.2s;
+      }
+      .chat-input-container:focus-within { border-color: var(--primary-color); }
+      
+      .chat-input-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+        border-bottom: 1px solid transparent;
+      }
+      .chat-input-toolbar .toolbar-left, .chat-input-toolbar .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .model-selector {
+        background: var(--sidebar-bg);
+        border: none;
+        border-radius: 16px;
+        padding: 4px 10px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+      }
+      .model-selector svg.logo { width: 14px; height: 14px; color: var(--primary-color); }
+      
+      .chat-input-toolbar .icon-btn { border: none; padding: 4px; background: transparent; }
+      .chat-input-toolbar .icon-btn:hover { background: var(--dropdown-hover); }
+
+      #chatInputArea {
+        border: none;
+        outline: none;
+        padding: 8px 12px;
+        font-size: 14px;
+        color: var(--text-main);
+        background: transparent;
+        font-family: inherit;
+        min-height: 40px;
+        max-height: 150px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      #chatInputArea:empty::before {
+        content: attr(placeholder);
+        color: var(--icon-inactive);
+        pointer-events: none;
+      }
+
+      .chat-input-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
+      }
+      .input-actions { display: flex; gap: 8px; }
+      .input-action-btn {
+        background: var(--sidebar-bg);
+        border: none;
+        border-radius: 16px;
+        padding: 4px 10px;
+        font-size: 12px;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        cursor: pointer;
+      }
+      .input-action-btn:hover { background: var(--dropdown-hover); }
+      .input-action-btn svg { width: 12px; height: 12px; }
+
+      .chat-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 4px;
+      }
+      .upgrade-link {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--primary-color);
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .footer-icons { display: flex; gap: 6px; }
+      .footer-icons .icon-btn { border: none; padding: 4px; background: transparent; }
+      .footer-icons .icon-btn:hover { color: var(--primary-color); }
+
+      /* Tooltip Styles */
+      .tooltip-wrapper {
+        position: relative;
+        display: inline-flex;
+      }
+      .tooltip-content {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        bottom: 100%;
+        left: -80px; /* Shift it left so it doesn't overflow the right edge */
+        margin-bottom: 8px;
+        background-color: #111827; /* Always dark */
+        color: #F9FAFB;
+        text-align: left;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        line-height: 1.5;
+        width: 220px; /* Fixed width to force wrapping */
+        white-space: normal; /* Ensure text wraps */
+        word-wrap: break-word;
+        z-index: 10;
+        transition: opacity 0.2s, visibility 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        pointer-events: none;
+      }
+      .tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 90px; /* Align arrow with the button (80px shift + half button width ~10px) */
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #111827 transparent transparent transparent;
+      }
+      .tooltip-wrapper:hover .tooltip-content {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      .btn-tooltip-wrapper {
+        position: relative;
+        display: inline-flex;
+      }
+      .btn-tooltip-content {
+        visibility: hidden;
+        opacity: 0;
+        position: absolute;
+        bottom: calc(100% + 8px);
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #111827; /* Always dark */
+        color: #F9FAFB;
+        text-align: center;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 13px;
+        white-space: nowrap;
+        z-index: 100;
+        transition: opacity 0.2s, visibility 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        pointer-events: none;
+      }
+      .btn-tooltip-content::after {
+        content: "";
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -6px;
+        border-width: 6px;
+        border-style: solid;
+        border-color: #111827 transparent transparent transparent;
+      }
+      .btn-tooltip-wrapper:hover .btn-tooltip-content {
+        visibility: visible;
+        opacity: 1;
+      }
+
+      /* Chat History Drawer */
+      .chat-history-drawer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: calc(100vw - 56px); /* exclude right nav */
+        height: 80vh;
+        background: var(--bg-color);
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+        box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(100%);
+      }
+      .chat-history-drawer.open {
+        transform: translateY(0);
+      }
+
+      .chat-history-header {
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-history-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--text-main);
+      }
+      .chat-history-close {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-muted);
+        padding: 4px;
+        border-radius: 4px;
+      }
+      .chat-history-close:hover {
+        background: var(--btn-secondary-bg);
+        color: var(--text-main);
+      }
+      .chat-history-tabs {
+        display: flex;
+        gap: 20px;
+        padding: 0 20px;
+        position: relative;
+        margin-bottom: 12px;
+      }
+      .chat-history-tab {
+        padding: 8px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+      }
+      .chat-history-tab.active {
+        color: var(--text-main);
+        border-bottom-color: var(--text-main);
+      }
+      .chat-history-search {
+        padding: 0 20px 16px 20px;
+      }
+      .chat-history-search-input {
+        width: 100%;
+        padding: 10px 12px 10px 36px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-color) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%239CA3AF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>') no-repeat 12px center;
+        background-size: 16px;
+        outline: none;
+        font-size: 14px;
+        color: var(--text-main);
+      }
+      .chat-history-search-input:focus {
+        border-color: #6B4EFF;
+      }
+      .chat-history-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 0 20px 20px;
+      }
+      .chat-history-group {
+        margin-bottom: 24px;
+      }
+      .chat-history-group-title {
+        font-size: 13px;
+        color: var(--text-muted);
+        margin-bottom: 8px;
+        font-weight: 500;
+      }
+      .chat-history-item {
+        padding: 12px 16px;
+        background: var(--sidebar-bg);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        transition: background 0.2s;
+      }
+      .chat-history-item:hover {
+        background: var(--btn-secondary-bg);
+      }
+      .chat-history-item-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .chat-history-item-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-main);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 70%;
+      }
+      .chat-history-item-actions {
+        display: flex;
+        gap: 8px;
+        color: var(--text-muted);
+      }
+      .chat-history-action-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 2px;
+        color: inherit;
+        border-radius: 4px;
+      }
+      .chat-history-action-btn:hover {
+        color: var(--text-main);
+      }
+      .chat-history-item-desc {
+        font-size: 13px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      /* Loader Animations */
+      @keyframes ta-bounce {
+        0%, 100% { transform: translateY(0) scale(1); }
+        50% { transform: translateY(-12px) scale(1.05); }
+      }
+      @keyframes ta-pulse-shadow {
+        0%, 100% { transform: scale(1); opacity: 0.2; }
+        50% { transform: scale(0.6); opacity: 0.05; }
+      }
+    </style>
+  </head>
+<body>
+  <!-- 初始全屏加载遮罩 -->
+  <div id="initialLoader" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s ease;">
+    <div style="position: relative; display: flex; flex-direction: column; align-items: center;">
+      <svg viewBox="0 0 24 24" fill="none" style="width: 56px; height: 56px; animation: ta-bounce 1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;">
+        <defs>
+          <linearGradient id="taLogoGrad" x1="50%" y1="0%" x2="50%" y2="100%">
+            <stop offset="0%" stop-color="#F43F5E" />
+            <stop offset="100%" stop-color="#6B4EFF" />
+          </linearGradient>
+        </defs>
+        <path d="M12 4L4 18H20L12 4Z" stroke="url(#taLogoGrad)" stroke-width="2.5" stroke-linejoin="round"/>
+        <circle cx="12" cy="13" r="3.5" fill="url(#taLogoGrad)"/>
+      </svg>
+      <div style="width: 28px; height: 4px; background: linear-gradient(to right, rgba(244, 63, 94, 0.8), rgba(107, 78, 255, 0.8)); border-radius: 50%; margin-top: 12px; animation: ta-pulse-shadow 1s cubic-bezier(0.28, 0.84, 0.42, 1) infinite;"></div>
+    </div>
+    <div style="margin-top: 24px; font-size: 15px; font-weight: 700; color: var(--text-main); letter-spacing: 0.5px; opacity: 0.8;">Turing Arena</div>
+  </div>
+
+  <div class="app-container" id="mainAppContainer" style="opacity: 0; pointer-events: none; transition: opacity 0.3s ease;">
+    
+    <!-- Right Nav Bar (Mimicking Sider) -->
+    <div class="right-nav">
+      <!-- Icons are placeholders representing Chat, Claw, REC, etc. -->
+      <div class="nav-item active" data-tab="chat">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+        <span class="nav-label">聊天</span>
+      </div>
+      
+      <!-- Active Item (Our Probe) -->
+      <div class="nav-item" data-tab="record" style="position: relative;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        <span class="nav-label">录制</span>
+        <div class="nav-record-indicator" id="navRecordIndicator"></div>
+      </div>
+
+      <div class="nav-item" data-tab="crowdtest">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+        <span class="nav-label">众测</span>
+      </div>
+
+      <div class="nav-item" style="display: none;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+        <span class="nav-label">智能体</span>
+      </div>
+      
+      <div class="nav-item" style="display: none;">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+        <span class="nav-label">写作</span>
+      </div>
+
+      <div class="nav-spacer"></div>
+
+      <div class="avatar" id="userAvatarBtn" style="cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.1); background-color: transparent; border: none; padding: 0;">
+        <svg viewBox="0 0 24 24" style="width: 100%; height: 100%;"><circle cx="12" cy="12" r="12" fill="#6B4EFF"/><path fill="#ffffff" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div class="modal-overlay" id="imagePreviewModal">
+      <div style="position: relative; max-width: 90%; max-height: 90%; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+        <button id="closeImagePreviewBtn" style="position: absolute; top: -40px; right: -40px; background: rgba(0,0,0,0.5); color: white; border: none; border-radius: 50%; width: 32px; height: 32px; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center;">&times;</button>
+        <img id="previewModalImage" src="" style="max-width: 100%; max-height: 90vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+
+      <!-- VIEW: CHAT -->
+      <div id="view-chat" class="view-section active" style="display: flex; padding: 24px 20px;">
+
+        <!-- Scrollable Content -->
+        <div class="chat-content">
+          <h1 class="chat-greeting">Hi,</h1>
+          <h2 class="chat-subgreeting">今天我能为您提供什么帮助？</h2>
+
+          <div class="chat-preset-questions" style="margin-top: 24px; display: flex; flex-direction: column; gap: 10px;">
+            <button id="presetCrowdtestBtn" style="align-self: flex-start; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px 16px; font-size: 14px; color: var(--text-main); cursor: pointer; text-align: left; display: flex; align-items: center; gap: 8px; transition: all 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 18px; height: 18px; color: #F59E0B;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+              如何参与众测任务？
+            </button>
+          </div>
+
+          <!-- Chat Messages Area -->
+          <div id="chatMessages" style="display: flex; flex-direction: column; gap: 16px; margin-top: 24px; padding-bottom: 20px;"></div>
+        </div>
+
+        <!-- Bottom Input Area -->
+        <div class="chat-bottom-area">
+          
+          <!-- Page Context Card (Dynamically updated) -->
+          <div id="pageContextCard" style="display: none; padding: 10px 14px; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: border-color 0.2s;">
+            <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+              <div style="flex-shrink: 0; width: 24px; height: 24px; border-radius: 50%; background: #EEF2FF; color: var(--primary-color); display: flex; align-items: center; justify-content: center; overflow: hidden;">
+                <img id="pageContextFavicon" src="" alt="favicon" style="width: 14px; height: 14px; display: none;">
+                <svg id="pageContextDefaultIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+              </div>
+              <div style="display: flex; flex-direction: column; overflow: hidden;">
+                <span id="pageContextTitle" style="font-size: 13px; font-weight: 500; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;">网页标题</span>
+                <span id="pageContextUrl" style="font-size: 11px; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4;">url</span>
+              </div>
+            </div>
+            <button id="pageContextSummarizeBtn" style="flex-shrink: 0; display: flex; align-items: center; gap: 4px; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--primary-color); font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.2s, border-color 0.2s;">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              总结
+            </button>
+          </div>
+
+          <div class="chat-input-container">
+            <div class="chat-input-toolbar">
+              <div class="toolbar-left">
+                <button class="model-selector" style="cursor: default;">
+                  <svg class="logo" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 4L4 18H20L12 4Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="currentColor"/></svg>
+                  Turing
+                </button>
+                <div class="btn-tooltip-wrapper">
+                  <button class="icon-btn" id="screenshotBtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758a3 3 0 10-4.243 4.243 3 3 0 004.243-4.243zm0-5.758a3 3 0 10-4.243-4.243 3 3 0 004.243 4.243z"></path></svg></button>
+                  <div class="btn-tooltip-content">截图</div>
+                </div>
+                <div class="tooltip-wrapper">
+                  <button class="icon-btn" id="uploadFileBtn"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg></button>
+                  <div class="tooltip-content">支持jpg/jpeg, png, gif, webp, bmp等格式文件，且图片大小不超过10M，最多支持50张图片上传。</div>
+                  <input type="file" id="fileUploadInput" accept="image/jpeg, image/jpg, image/png, image/gif, image/webp, image/bmp" multiple style="display: none;">
+                </div>
+              </div>
+              <div class="toolbar-right" style="display: flex; gap: 8px;">
+                <div class="btn-tooltip-wrapper">
+                  <button class="icon-btn" id="chatHistoryBtn">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                  </button>
+                  <div class="btn-tooltip-content">查看历史对话</div>
+                </div>
+                <div class="btn-tooltip-wrapper">
+                  <button class="icon-btn" id="newChatBtn" style="color: #6B4EFF;">
+                    <svg fill="currentColor" viewBox="0 0 24 24"><path d="M5 4a3 3 0 00-3 3v8a3 3 0 003 3h1.5v4.5a.5.5 0 00.854.354L11.707 18H19a3 3 0 003-3V7a3 3 0 00-3-3H5zm6.5 5a.5.5 0 01.5.5V11h1.5a.5.5 0 010 1H12v1.5a.5.5 0 01-1 0V12H9.5a.5.5 0 010-1H11V9.5a.5.5 0 01.5-.5z"/></svg>
+                  </button>
+                  <div class="btn-tooltip-content">新建对话</div>
+                </div>
+              </div>
+            </div>
+
+            <div id="chatAttachments" style="display: none; padding: 8px 12px 0; gap: 8px; flex-wrap: wrap;"></div>
+
+            <div id="chatInputArea" contenteditable="true" placeholder="问任何问题"></div>
+
+            <div class="chat-input-bottom">
+              <div class="input-actions">
+              </div>
+              <button id="chatSendBtn" class="icon-btn" style="border:none; background:none; color:#6B4EFF; padding:4px; display:flex; align-items:center; justify-content:center; cursor:pointer;">
+                <svg viewBox="0 0 24 24" fill="currentColor" style="width:20px; height:20px;"><path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" /></svg>
+              </button>
+            </div>
+          </div>
+
+        </div>
+      </div> <!-- End of VIEW: CHAT -->
+      
+      <!-- VIEW: RECORD -->
+      <div id="view-record" class="view-section" style="display: none; height: 100vh; overflow: hidden; flex-direction: column; width: 100%;">
+        <div class="header" style="flex-shrink: 0; padding-bottom: 12px; padding: 24px 20px 0 20px; width: 100%; box-sizing: border-box;">
+          <h1 style="margin-bottom: 16px;">录制</h1>
+          <!-- 顶层 Tab 切换 -->
+          <div style="display: flex; gap: 24px; border-bottom: 1px solid var(--border-color);">
+            <div id="masterTabControl" style="padding-bottom: 12px; cursor: pointer; font-size: 14px; font-weight: 600; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); transition: all 0.2s;">
+              录制控制
+            </div>
+            <div id="masterTabHistory" style="padding-bottom: 12px; cursor: pointer; font-size: 14px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; transition: all 0.2s;">
+              录制列表
+            </div>
+          </div>
+        </div>
+
+        <div id="masterContentControl" style="flex: 1; overflow-y: auto; padding: 16px 20px 24px 20px;">
+        <!-- Capability 1: Screen & Audio -->
+      <div id="recordMainView">
+        <div class="capability-header" id="mediaCardHeader" style="cursor: pointer; display: none;">
+          <div class="capability-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            录制配置
+          </div>
+        </div>
+        
+        <div id="mediaCardContent" style="padding-top: 0;">
+          <!-- 录制准备态 UI -->
+          <div id="recordingPrepState">
+            <div style="margin-bottom: 16px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-size: 12px; color: var(--text-muted);">当前识别上下文</div>
+                <div id="autoDetectStatus" style="font-size: 11px; color: var(--primary-color); display: flex; align-items: center; gap: 4px;">
+                  <div class="recording-indicator-dot" style="width: 6px; height: 6px; background-color: var(--primary-color); border-radius: 50%; animation: pulse-blue 1.5s infinite;"></div>
+                  自动识别中...
+                </div>
+              </div>
+              
+              <!-- 统一的输入表单 -->
+              <div id="contextInputsContainer" style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="text" id="manualTaskInput" placeholder="输入或选择 Task ID" list="mockTasks" style="width: 100%; font-size: 12px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-main); outline: none;">
+                <datalist id="mockTasks">
+                  <option value="Task_7614027052451991359">
+                  <option value="Task_8932401234567890123">
+                </datalist>
+                
+                <input type="text" id="manualQuestionInput" placeholder="输入或选择 Question ID" list="mockQuestions" style="width: 100%; font-size: 12px; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-main); outline: none;">
+                <datalist id="mockQuestions">
+                  <option value="q_30303030303030303030">
+                  <option value="q_7594446215762546478">
+                </datalist>
+              </div>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">附加录制项（工时记录已默认开启）</div>
+              <label class="checkbox-label" style="display: flex; align-items: center; margin-bottom: 8px; cursor: pointer;">
+                <input type="checkbox" id="chkRecordScreen" checked style="margin-right: 8px;">
+                <span style="font-size: 13px; color: var(--text-main);">录制屏幕视频</span>
+              </label>
+              <label class="checkbox-label" style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="chkRecordTrajectory" checked style="margin-right: 8px;">
+                <span style="font-size: 13px; color: var(--text-main);">录制交互轨迹</span>
+              </label>
+            </div>
+
+            <button id="btnStartMasterRecord" class="btn-primary" style="margin-bottom: 0; background: var(--primary-color);">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              开始录制
+            </button>
+          </div>
+
+          <!-- 录制进行态 UI -->
+          <div id="recordingActiveState" style="display: none;">
+            <div id="recordingStatusBar" style="display: flex; flex-direction: column; gap: 16px; margin-bottom: 20px; padding: 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; transition: all 0.3s ease;">
+              
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <div class="recording-indicator-dot" id="recordingActiveDot" style="width: 8px; height: 8px; background-color: #16a34a; border-radius: 50%; animation: pulse-green 2s infinite;"></div>
+                  <span id="recordingActiveText" style="font-size: 14px; font-weight: 600; color: #16a34a; letter-spacing: 0.5px;">录制中</span>
+                </div>
+              </div>
+
+              <!-- 倒计时面板 (类似图2的秒表) -->
+              <div style="display: flex; justify-content: center; gap: 24px; padding: 12px 0;">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">小时</span>
+                  <span id="timerHours" class="timer-digits" style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 28px; font-weight: 700; color: #16a34a; transition: color 0.3s ease;">00</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 4px;">
+                  <span style="font-size: 18px; color: var(--text-muted); font-weight: 700;">:</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">分钟</span>
+                  <span id="timerMinutes" class="timer-digits" style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 28px; font-weight: 700; color: #16a34a; transition: color 0.3s ease;">00</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; justify-content: flex-end; padding-bottom: 4px;">
+                  <span style="font-size: 18px; color: var(--text-muted); font-weight: 700;">:</span>
+                </div>
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 4px;">
+                  <span style="font-size: 12px; color: var(--text-muted); font-weight: 500;">秒钟</span>
+                  <span id="timerSeconds" class="timer-digits" style="font-family: 'SF Mono', Consolas, Monaco, monospace; font-size: 28px; font-weight: 700; color: #16a34a; transition: color 0.3s ease;">00</span>
+                </div>
+              </div>
+
+            </div>
+
+            <div style="margin-bottom: 20px;">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 8px;">当前绑定上下文</div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <div class="context-tag active" id="activeTaskTag">Task: --</div>
+                <div class="context-tag active" id="activeQuestionTag">Question: --</div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+              <button id="btnPauseResumeMasterRecord" class="btn-primary" style="flex: 1; margin-bottom: 0; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); color: #F59E0B; display: flex; justify-content: center; transition: all 0.2s;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" id="pauseIcon" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                <span id="pauseResumeText">暂停录制</span>
+              </button>
+              <button id="btnStopMasterRecord" class="btn-primary" style="flex: 1; margin-bottom: 0; background: #FEF2F2; border: 1px solid #FECACA; color: #EF4444; display: flex; justify-content: center; align-items: center; transition: all 0.2s;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><circle cx="12" cy="12" r="4" fill="currentColor"></circle></svg>
+                结束录制
+              </button>
+            </div>
+          </div> <!-- End of recordingActiveState -->
+        </div> <!-- End of mediaCardContent -->
+      </div> <!-- End of recordMainView -->
+      </div> <!-- End of masterContentControl -->
+
+      <div id="masterContentHistory" style="display: none; flex: 1; flex-direction: column; overflow-y: auto; padding: 16px 20px 24px 20px;">
+        <!-- Filters & Actions -->
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-shrink: 0; gap: 8px;">
+          <div style="display: flex; gap: 8px; flex: 1;">
+            <input type="text" id="filterTaskId" placeholder="搜索 Task ID..." class="input-text" style="flex: 1; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); min-width: 0;">
+            <input type="text" id="filterQuestionId" placeholder="搜索 Question ID..." class="input-text" style="flex: 1; padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); min-width: 0;">
+            <select id="sortMediaSelect" class="input-text" style="padding: 6px 10px; font-size: 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-main); cursor: pointer; outline: none;">
+              <option value="desc">最新录制</option>
+              <option value="asc">最早录制</option>
+            </select>
+          </div>
+          <button id="deleteAllMediaBtn" title="全部删除" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #EF4444; padding: 6px; cursor: pointer; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: all 0.2s;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" style="width:16px;height:16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          </button>
+        </div>
+        <div class="notes-list" id="mediaNotesList" style="display: flex; flex-direction: column; flex: 1;"></div>
+        <div id="mediaShowMoreBtn" class="show-more-btn" style="display: none; text-align: center; color: var(--primary-color); font-size: 13px; cursor: pointer; padding: 8px; margin-top: 4px; border-radius: 6px;">显示更多 ▾</div>
+        <div class="empty-state" id="mediaEmptyState" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; min-height: 200px; padding: 40px 0; color: var(--text-muted); background: var(--bg-color); border-radius: 8px; border: 1px dashed var(--border-color); margin-top: 16px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02); margin-bottom: 12px;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+          </div>
+          <span style="font-size: 13px; font-weight: 500; letter-spacing: 0.5px;">暂无录制文件</span>
+          <span style="font-size: 12px; margin-top: 6px; opacity: 0.8;">请在“录制控制”中开始你的第一个任务</span>
+        </div>
+        </div>
+      </div>
+
+      <!-- Capability 2: Trajectory Collection (HIDDEN, merged into master record) -->
+      <div class="capability-card" id="trajMainView" style="display: none;">
+        <div class="capability-header" id="trajCardHeader" style="cursor: pointer;">
+          <div class="capability-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            轨迹数据收集
+          </div>
+          <svg class="chevron-icon" id="trajChevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px; color: var(--text-muted); transition: transform 0.3s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        </div>
+        <div id="trajCardContent">
+          <div class="settings-strip" style="margin-bottom: 16px;">
+          <div class="control-box" id="trajModeControl" style="flex: 1;">
+            <div class="control-trigger" id="trajModeTrigger">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+              <span class="label" id="trajModeLabel">DOM + 网络请求</span>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" class="arrow-icon"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <!-- Popover Menu -->
+            <div class="dropdown-menu" id="trajModeMenu">
+              <div class="dropdown-item active" data-value="dom_network" data-label="DOM + 网络请求">记录 DOM 操作与网络请求</div>
+              <div class="dropdown-item" data-value="dom_only" data-label="仅 DOM">仅记录 DOM 操作</div>
+              <div class="dropdown-item" data-value="network_only" data-label="仅网络请求">仅记录网络请求</div>
+            </div>
+          </div>
+          
+          <!-- Settings Icon (moved here) -->
+          <div class="icon-btn" style="flex-shrink: 0;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+          </div>
+        </div>
+
+        <button id="recordTrajBtn" class="btn-primary" style="margin-bottom: 0;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>
+          开始收集
+        </button>
+        <button id="stopTrajBtn" class="btn-primary btn-stop" style="margin-bottom: 0;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"></path></svg>
+          停止收集 (<span id="eventCount">0</span>)
+        </button>
+
+        <div class="sub-header" style="margin-top: 16px; margin-bottom: 12px;">
+          <h2 style="font-size: 13px; color: var(--text-muted);">轨迹文件</h2>
+        </div>
+          <div class="notes-list" id="trajNotesList" style="display: flex;"></div>
+          <div id="trajShowMoreBtn" class="show-more-btn" style="display: none; text-align: center; color: var(--primary-color); font-size: 13px; cursor: pointer; padding: 8px; margin-top: 4px; border-radius: 6px;">显示更多 ▾</div>
+          <div class="empty-state" id="trajEmptyState" style="min-height: 80px; padding: 20px 0;">
+            <span>暂无轨迹文件</span>
+          </div>
+        </div>
+      </div>
+      </div> <!-- End of VIEW: RECORD -->
+
+      <!-- VIEW: CROWDTEST -->
+      <div id="view-crowdtest" class="view-section" style="display: none; flex-direction: column; height: 100%; width: 100%;">
+        <div class="header" style="flex-shrink: 0; margin-bottom: 20px; padding: 24px 20px 0 20px; width: 100%; box-sizing: border-box;">
+          <h1 style="margin-bottom: 0;">众测大厅</h1>
+        </div>
+
+        <div class="crowdtest-list" id="crowdtestList" style="flex: 1; overflow-y: auto; padding: 0 20px 24px 20px; display: flex; flex-direction: column; width: 100%; box-sizing: border-box;">
+          <!-- Example Task 1 -->
+          <div class="capability-card task-card" data-task-id="doubao-vs-deepseek" style="width: 100%; box-sizing: border-box; cursor: pointer; transition: border-color 0.2s;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px;">
+              <h3 style="margin: 0; font-size: 15px; font-weight: 600; color: var(--text-main);">豆包 vs Deepseek</h3>
+              <span style="background: #FEF3C7; color: #D97706; font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600;">+50 积分</span>
+            </div>
+            <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+              对比豆包与Deepseek两个模型对同一个问题的思考过程和回复质量。
+            </div>
+            <div style="display: flex; gap: 6px; margin-bottom: 12px;">
+              <span style="background: var(--btn-secondary-bg); color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 4px;">模型对比</span>
+              <span style="background: var(--btn-secondary-bg); color: var(--text-muted); font-size: 11px; padding: 2px 6px; border-radius: 4px;">逻辑推理</span>
+            </div>
+            <button class="btn-primary" id="enterTaskBtn" style="margin: 0; width: 100%; padding: 8px; font-size: 13px;">进入任务</button>
+          </div>
+        </div>
+      </div> <!-- End of VIEW: CROWDTEST -->
+
+      <!-- CROWDTEST: Question List Overlay -->
+      <div class="detail-overlay" id="ctQuestionListOverlay">
+        <div class="detail-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 12px;">
+          <div class="back-btn" id="ctQListBackBtn" style="cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          </div>
+          <h2 class="detail-title" style="margin: 0; font-size: 16px; font-weight: 600;">题目列表 (豆包 vs Deepseek)</h2>
+        </div>
+        <div class="detail-body" id="ctQuestionListContainer" style="padding: 20px; overflow-y: auto;">
+          <!-- Questions will be rendered here dynamically -->
+        </div>
+      </div>
+
+      <!-- CROWDTEST: Question Detail Overlay -->
+      <div class="detail-overlay" id="ctQuestionDetailOverlay">
+        
+        <!-- Floating TOC -->
+        <div id="ctTocContainer" style="position: absolute; right: 20px; top: 80px; width: 140px; background: var(--sidebar-bg); border: 1px solid var(--border-color); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1010; transition: width 0.2s, height 0.2s; overflow: hidden; display: flex; flex-direction: column;">
+          <div id="ctTocHeader" style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: var(--bg-color); border-bottom: 1px solid var(--border-color);">
+            <span style="font-size: 12px; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 4px;">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg>
+              导航
+            </span>
+            <svg id="ctTocToggleIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px; transition: transform 0.2s;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
+          <div id="ctTocBody" style="max-height: 300px; overflow-y: auto; padding: 4px; display: block;">
+            <ul id="ctTocList" style="list-style: none; margin: 0; padding: 0;">
+              <!-- populated dynamically -->
+            </ul>
+          </div>
+        </div>
+
+        <div class="detail-header" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="back-btn" id="ctQDetailBackBtn" style="cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--text-muted);">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 20px; height: 20px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+            </div>
+            <h2 class="detail-title" style="margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+              评测详情
+              <span id="ctDetailQuestionIdBadge" style="display: none; background: #EDE9FE; color: #6B4EFF; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 500;"></span>
+            </h2>
+          </div>
+          <button class="btn-primary" id="ctSubmitEvalBtn" style="margin: 0; padding: 6px 16px; width: auto; font-size: 12px; background: #10B981;">提交评测</button>
+        </div>
+        <div class="detail-body" style="padding: 20px; overflow-y: auto;">
+          <div class="capability-card" style="margin-bottom: 16px; padding: 0;">
+            <div style="padding: 16px;">
+              <h3 id="ctModuleTask" style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                题目
+              </h3>
+              <div style="background: var(--chat-user-bg); border-radius: 8px; position: relative;">
+                <div id="ctGlobalTaskPromptText" style="padding: 12px; font-size: 13px; color: var(--text-main); line-height: 1.5; padding-right: 40px; max-height: 200px; overflow-y: auto;">
+                  --
+                </div>
+                <button id="ctCopyGlobalTaskPromptBtn" class="custom-tooltip" data-tooltip="复制" style="position: absolute; top: 8px; right: 8px; background: var(--sidebar-bg); border: 1px solid var(--border-color); cursor: pointer; color: var(--text-main); padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.2s;" onmouseover="this.style.borderColor='var(--primary-color)'; this.style.color='var(--primary-color)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.color='var(--text-main)';">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Model Links Section (Moved to Top) -->
+          <div class="capability-card" style="margin-bottom: 16px; padding: 0;">
+            <div style="padding: 16px 16px 0 16px;">
+              <h3 id="ctModuleChat" style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                与模型对话
+              </h3>
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+                请分别打开下方指定网页，与模型进行多轮对话
+              </div>
+            </div>
+
+            <!-- Tabs Header -->
+            <div style="display: flex; border-bottom: 1px solid var(--border-color); padding: 0 16px; margin-bottom: 16px;">
+              <div class="ct-model-tab active" data-target="doubao" style="padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); cursor: pointer; transition: all 0.2s;">
+                豆包
+              </div>
+              <div class="ct-model-tab" data-target="deepseek" style="padding: 8px 16px; font-size: 13px; font-weight: 600; color: var(--text-muted); border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s;">
+                Deepseek
+              </div>
+            </div>
+
+            <!-- Tab Content: Doubao -->
+            <div class="ct-tab-content active" id="ct-tab-doubao" style="padding: 0 16px 16px 16px;">
+              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn-primary" id="ctOpenDoubaoBtn" style="flex: 1; margin: 0; padding: 8px; font-size: 13px; background: var(--bg-color); color: var(--primary-color); border: 1px solid var(--primary-color); display: flex; justify-content: center; align-items: center; gap: 6px;">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                  打开豆包网页版
+                </button>
+              </div>
+              <div id="ctRoundsContainer-doubao" style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Doubao rounds injected here -->
+              </div>
+            </div>
+
+            <!-- Tab Content: Deepseek -->
+            <div class="ct-tab-content" id="ct-tab-deepseek" style="padding: 0 16px 16px 16px; display: none;">
+              <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                <button class="btn-primary" id="ctOpenDeepseekBtn" style="flex: 1; margin: 0; padding: 8px; font-size: 13px; background: var(--bg-color); color: var(--primary-color); border: 1px solid var(--primary-color); display: flex; justify-content: center; align-items: center; gap: 6px;">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                  打开Deepseek网页版
+                </button>
+              </div>
+              <div id="ctRoundsContainer-deepseek" style="display: flex; flex-direction: column; gap: 24px;">
+                <!-- Deepseek rounds injected here -->
+              </div>
+            </div>
+          </div>
+
+        <!-- Step 3: Global Rating -->
+        <div class="capability-card" style="margin-bottom: 16px;">
+          <h3 style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+            整体评分
+          </h3>
+          
+          <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+            <div style="flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); text-align: center;">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">豆包平均分</div>
+              <div id="doubaoGlobalAvgScore" style="font-size: 20px; font-weight: 700; color: var(--primary-color);">0.0</div>
+            </div>
+            <div style="flex: 1; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-color); text-align: center;">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Deepseek平均分</div>
+              <div id="deepseekGlobalAvgScore" style="font-size: 20px; font-weight: 700; color: #2563EB;">0.0</div>
+            </div>
+          </div>
+
+          <div style="margin-bottom: 12px;">
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">综合对比结果 <span style="color: #EF4444;">*</span></div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                <input type="radio" name="global_gsb_vote" value="A"> 豆包 更好
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                <input type="radio" name="global_gsb_vote" value="B"> Deepseek 更好
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                <input type="radio" name="global_gsb_vote" value="Tie"> 平局 (都很好/都很差)
+              </label>
+            </div>
+          </div>
+
+          <div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">评分理由简述 <span style="color: #EF4444;">*</span></div>
+            <textarea id="globalGsbReason" placeholder="请简要说明为什么觉得这个模型更好，或者为什么是平局..." style="width: 100%; height: 80px; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 13px; resize: vertical; font-family: inherit; box-sizing: border-box; outline: none; transition: border-color 0.2s;"></textarea>
+          </div>
+        </div>
+
+        <!-- Step 4: Product Collection -->
+        <div class="capability-card" style="margin-bottom: 24px;">
+          <h3 id="ctModuleCollection" style="font-size: 14px; font-weight: 600; color: var(--text-main); margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+            产物收集
+          </h3>
+          
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">豆包对话链接 <span style="color: #EF4444;">*</span></label>
+              <input type="text" id="doubaoLinkInput" placeholder="请粘贴豆包的分享链接..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+            </div>
+            <div>
+              <label style="font-size: 12px; font-weight: 600; color: var(--text-muted); display: block; margin-bottom: 6px;">Deepseek对话链接 <span style="color: #EF4444;">*</span></label>
+              <input type="text" id="deepseekLinkInput" placeholder="请粘贴Deepseek的分享链接..." style="width: 100%; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box; outline: none; transition: border-color 0.2s;">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Detail View Overlay (For Media Recording) -->
+    <div class="detail-overlay" id="mediaDetailOverlay">
+      <div class="detail-header">
+        <div class="back-btn" id="mediaBackBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </div>
+        <h2 class="detail-title" id="mediaDetailTitle">录屏文件详情</h2>
+      </div>
+      <div class="detail-body" style="display: flex; flex-direction: column; height: calc(100vh - 60px); overflow: hidden;">
+        <div style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 16px; font-size: 13px; color: var(--text-muted); flex-shrink: 0;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">开始时间</span>
+            <strong id="detailsStartTime" style="color: var(--text-main);">--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">结束时间</span>
+            <strong id="detailsEndTime" style="color: var(--text-main);">--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">录制时长</span>
+            <strong id="detailsDuration" style="color: var(--text-main);">--</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">关联题目ID</span>
+            <div id="mediaDetailTaskIds" style="color: var(--text-main); font-weight: 600; text-align: right; max-width: 60%; word-break: break-all;">--</div>
+          </div>
+        </div>
+        
+        <!-- Tabs -->
+        <div style="display: flex; gap: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 16px; flex-shrink: 0;">
+          <div id="mediaTabVideo" style="padding-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--primary-color); border-bottom: 2px solid var(--primary-color); transition: all 0.2s;">
+            视频预览
+          </div>
+          <div id="mediaTabTraj" style="padding-bottom: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text-muted); border-bottom: 2px solid transparent; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
+            交互轨迹
+            <span id="mediaTrajCountBadge" style="background: var(--dropdown-active); color: var(--primary-color); padding: 1px 6px; border-radius: 10px; font-size: 10px; font-weight: 600;">0</span>
+          </div>
+        </div>
+
+        <!-- Video Tab Content -->
+        <div id="mediaContentVideo" style="display: block; flex: 1; overflow-y: auto;">
+          <div id="videoContainer" style="position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: var(--bg-color); border: 1px dashed var(--border-color); aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; margin-bottom: 24px;">
+            <video id="detailsVideoPlayer" controls controlslist="nofullscreen" style="width: 100%; height: 100%; display: none; background: #000;"></video>
+            <button id="customFullscreenBtn" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.5); border: none; color: white; border-radius: 4px; padding: 6px; cursor: pointer; display: none; z-index: 10; backdrop-filter: blur(4px);" title="全屏观看">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            </button>
+            <div id="detailsVideoPlaceholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: var(--text-muted);">
+              <div style="width: 48px; height: 48px; border-radius: 50%; background: var(--card-bg); border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="color: var(--text-muted);">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3l18 18"></path>
+                </svg>
+              </div>
+              <span id="detailsVideoPlaceholderText" style="font-size: 13px; font-weight: 500; letter-spacing: 0.5px; color: var(--text-muted);">暂无视频流</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Trajectory Tab Content -->
+        <div id="mediaContentTraj" style="display: none; flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 16px;">
+          <div id="mediaTrajSection" style="display: flex; flex-direction: column; height: 100%;">
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px; flex-shrink: 0;">
+              <button id="mediaTrajDownloadBtn" class="btn-primary" style="margin: 0; padding: 4px 10px; font-size: 12px; border-radius: 6px; background: var(--btn-secondary-bg); color: var(--text-main); border: 1px solid var(--border-color); display: flex; align-items: center; gap: 4px; transition: background 0.2s;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                导出 JSON
+              </button>
+            </div>
+            <div class="timeline" id="mediaTrajTimeline" style="background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; flex: 1; overflow-y: auto;">
+              <!-- Trajectory events will be injected here -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail View Overlay (For Trajectory) -->
+    <div class="detail-overlay" id="detailOverlay">
+      <div class="detail-header">
+        <div class="back-btn" id="backBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </div>
+        <h2 class="detail-title" id="detailTitle">轨迹详情</h2>
+        <div class="detail-actions">
+          <button id="detailDownloadBtn" class="btn-primary" style="margin: 0; padding: 6px 12px; font-size: 13px; border-radius: 6px;">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+            导出 JSON
+          </button>
+        </div>
+      </div>
+      <div class="detail-body" id="trajDetailBody">
+        <div class="traj-filter-container" id="trajFilterContainer">
+          <!-- Filter pills will be injected here -->
+        </div>
+        <div class="timeline" id="eventTimeline">
+          <!-- Event cards will be injected here -->
+        </div>
+      </div>
+      <div class="back-to-top-btn" id="trajBackToTopBtn" title="回到顶部">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path></svg>
+      </div>
+    </div>
+
+    <!-- Detail View Overlay (For Crowdtest Task) -->
+    <div class="detail-overlay" id="taskOverlay">
+      <div class="detail-header" style="border-bottom: none; padding-bottom: 0;">
+        <div class="back-btn" id="taskBackBtn">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+        </div>
+        <h2 class="detail-title">任务执行</h2>
+      </div>
+      <div class="detail-body" style="padding-top: 12px; position: relative;">
+        <!-- Inconsistency Alert (Sticky) -->
+        <div id="ctInconsistencyAlert" style="display: none; position: sticky; top: -12px; z-index: 100; margin: -12px -16px 16px -16px; padding: 12px 16px; background: #FEF3C7; border-bottom: 1px solid #FDE68A; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+          <div style="display: flex; align-items: flex-start; gap: 8px;">
+            <svg fill="none" stroke="#D97706" viewBox="0 0 24 24" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 2px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+            <div style="flex: 1;">
+              <div style="font-size: 13px; font-weight: 600; color: #92400E; margin-bottom: 4px;">对话记录不一致</div>
+              <div style="font-size: 12px; color: #B45309; margin-bottom: 8px; line-height: 1.4;">检测到当前网页的对话记录与插件缓存的多轮记录不匹配，这可能会影响您的批注归属。</div>
+              <button id="ctSyncPromptBtn" style="background: #D97706; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-size: 12px; font-weight: 600; cursor: pointer; transition: background 0.2s;">一键同步覆盖插件记录</button>
+            </div>
+            <button id="ctDismissAlertBtn" style="background: none; border: none; padding: 4px; cursor: pointer; color: #B45309;"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+          </div>
+        </div>
+        <h3 id="taskDetailTitle" style="margin: 0 0 16px 0; font-size: 16px; font-weight: 600;">PPT大纲生成能力对比</h3>
+        
+        <!-- Step 1: Target Agents -->
+        <div class="capability-card" style="margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase;">第一步：打开测试平台</div>
+          <div style="display: flex; gap: 8px;">
+            <button id="openDoubaoBtn" class="btn-primary" style="flex: 1; margin: 0; background-color: var(--btn-secondary-bg); color: var(--text-main); border: 1px solid var(--border-color); font-size: 13px; padding: 8px;">打开 豆包</button>
+            <button id="openDeepseekBtn" class="btn-primary" style="flex: 1; margin: 0; background-color: var(--btn-secondary-bg); color: var(--text-main); border: 1px solid var(--border-color); font-size: 13px; padding: 8px;">打开 Deepseek</button>
+          </div>
+        </div>
+
+        <!-- Step 2: Prompt -->
+        <div class="capability-card" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">第二步：复制测试提示词</div>
+            <button id="copyPromptBtn" style="background: none; border: none; color: var(--primary-color); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0;">一键复制</button>
+          </div>
+          <div id="taskPrompt" style="background-color: var(--sidebar-bg); padding: 12px; border-radius: 8px; font-size: 13px; color: var(--text-main); font-family: monospace; white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto;">请帮我生成一份关于“2026年AI Agent发展趋势”的PPT大纲，要求结构清晰，包含市场化分析和具体商业案例，总页数控制在10页左右。</div>
+        </div>
+
+
+
+        <div class="capability-card" style="margin-bottom: 16px;">
+          <div style="font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase;">第四步：产物收集（已废弃）</div>
+          
+          <div id="roundsContainer">
+            <!-- Round 1 -->
+            <div class="evaluation-round" data-round="1" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 12px; background-color: var(--sidebar-bg);">
+              <h4 style="margin: 0 0 8px 0; font-size: 13px; color: var(--text-main);">第 1 轮</h4>
+              
+              <!-- Responses -->
+              <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
+                <textarea class="agent-response-input" placeholder="请粘贴 豆包 的回复..." style="width: 100%; height: 60px; padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 12px; resize: vertical; font-family: inherit; box-sizing: border-box;"></textarea>
+                <textarea class="agent-response-input" placeholder="请粘贴 Deepseek 的回复..." style="width: 100%; height: 60px; padding: 8px; border: 1px solid #D1D5DB; border-radius: 6px; font-size: 12px; resize: vertical; font-family: inherit; box-sizing: border-box;"></textarea>
+              </div>
+
+              <!-- Vote -->
+              <div style="display: flex; flex-direction: column; gap: 6px;">
+                <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                  <input type="radio" name="vote_round_1" value="A"> 豆包 更好
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                  <input type="radio" name="vote_round_1" value="B"> Deepseek 更好
+                </label>
+                <label style="display: flex; align-items: center; gap: 8px; padding: 8px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; background: var(--bg-color); font-size: 13px;">
+                  <input type="radio" name="vote_round_1" value="Tie"> 平局 (都很好/都很差)
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <button id="addRoundBtn" style="width: 100%; padding: 8px; background: none; border: 1px dashed #D1D5DB; border-radius: 8px; color: var(--text-muted); cursor: pointer; font-size: 13px; margin-bottom: 16px; transition: all 0.2s;">+ 添加下一轮评测</button>
+
+          <button id="submitVoteBtn" class="btn-primary" style="margin: 0; width: 100%;">提交完整评测报告</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Consent Modal -->
+    <div class="modal-overlay" id="consentModal">
+      <div class="modal-content">
+        <h3 style="margin-top: 0; font-size: 16px; color: var(--text-main);">需要开启录制权限</h3>
+        <p style="font-size: 13px; color: #4B5563; line-height: 1.5; margin-bottom: 16px;">
+          为了保证众测任务的数据有效性，参与任务前需要开启<strong>「屏幕/声音录制」</strong>与<strong>「轨迹数据收集」</strong>。<br><br>
+          点击“同意并开启”即表示您同意我们的数据收集协议。您的操作轨迹将仅用于大模型能力评测。
+        </p>
+        <div style="display: flex; gap: 8px; justify-content: flex-end;">
+          <button id="cancelConsentBtn" class="btn-secondary" style="padding: 8px 12px; font-size: 13px; border-radius: 6px; border: none; cursor: pointer; white-space: nowrap; flex-shrink: 0;">取消</button>
+          <button id="agreeConsentBtn" class="btn-primary" style="margin: 0; padding: 8px 12px; font-size: 13px; border-radius: 6px; flex: 1;">同意并开启</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Chat History Drawer -->
+  <div id="chatHistoryDrawer" class="chat-history-drawer">
+    <div class="chat-history-header">
+      <div class="chat-history-title">历史记录 <span style="color:#9CA3AF; font-weight:normal; font-size:14px;">(3)</span></div>
+      <button class="chat-history-close" id="closeHistoryBtn">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="20" height="20"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+    </div>
+    
+    <div class="chat-history-tabs">
+      <div class="chat-history-tab active" data-filter="all">全部</div>
+      <div class="chat-history-tab" data-filter="starred">已收藏</div>
+      <button class="chat-history-action-btn" id="clearAllHistoryBtn" style="position: absolute; right: 20px; top: 12px; background: var(--btn-secondary-bg); border-radius: 4px; padding: 4px;" title="清空全部">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      </button>
+    </div>
+
+    <div class="chat-history-search">
+      <input type="text" class="chat-history-search-input" id="chatHistorySearchInput" placeholder="搜索">
+    </div>
+
+    <div class="chat-history-list" id="chatHistoryList">
+      <!-- Dynamic Content -->
+    </div>
+  </div>
+
+  <!-- Generic Toast Container -->
+  <div id="toastContainer" style="position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 8px; pointer-events: none;"></div>
+
+  <!-- Confirm Clear History Modal -->
+  <div class="modal-overlay" id="confirmClearModal">
+    <div class="modal-content" style="width: 260px; padding: 20px 16px; text-align: center; border-radius: 12px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);">
+      <div style="margin-bottom: 12px;">
+        <svg fill="none" stroke="#EF4444" viewBox="0 0 24 24" width="32" height="32" style="margin: 0 auto; background: #FEE2E2; border-radius: 50%; padding: 6px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+      </div>
+      <div style="font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">清空历史记录</div>
+      <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">确定要清空所有历史对话吗？<br>已收藏的对话将保留。</div>
+      <div style="display: flex; gap: 12px;">
+        <button id="cancelClearBtn" style="flex: 1; padding: 8px 0; border-radius: 6px; font-size: 13px; font-weight: 500; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); cursor: pointer;">取消</button>
+        <button id="confirmClearBtn" style="flex: 1; padding: 8px 0; border-radius: 6px; font-size: 13px; font-weight: 500; border: none; background: #EF4444; color: white; cursor: pointer;">确定清空</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile Popover -->
+  <div id="userProfilePopover" style="position: absolute; bottom: 20px; right: 68px; width: 260px; background: var(--popover-bg); border-radius: 12px; box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1), 0 0 0 1px var(--popover-border); display: none; flex-direction: column; z-index: 1000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; transition: opacity 0.2s, transform 0.2s; opacity: 0; transform: translateX(10px);">
+    <div id="popoverHeader" style="display: flex; align-items: center; justify-content: space-between; padding: 16px; border-bottom: 1px solid var(--popover-border); background: var(--popover-bg); gap: 12px; transition: all 0.2s;">
+      <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0;">
+        <div id="popoverAvatar" style="width: 28px; height: 28px; border-radius: 50%; background: #EDE9FE; color: #6B4EFF; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; font-weight: 600; padding: 0;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width: 16px; height: 16px;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+        </div>
+        <div id="popoverText" style="font-size: 14px; font-weight: 500; color: var(--text-main); line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color 0.2s;">登录以开始使用</div>
+      </div>
+      <button id="openLoginModalBtn" class="btn-primary" style="padding: 6px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; flex-shrink: 0; margin: 0; width: auto;">登录</button>
+      <button id="logoutBtn" class="btn-primary" style="padding: 6px 14px; font-size: 13px; font-weight: 500; border-radius: 8px; flex-shrink: 0; margin: 0; width: auto; display: none; background: var(--btn-secondary-bg); color: var(--btn-secondary-text); border: 1px solid var(--border-color); transition: all 0.2s;">登出</button>
+    </div>
+    <div id="popoverFooter" style="padding: 8px; background: var(--sidebar-bg); transition: background 0.2s;">
+      <div id="themeToggleBtn" class="profile-menu-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 13px; color: var(--text-main); border-radius: 8px; cursor: pointer; transition: all 0.2s; background: transparent;">
+        <span id="themeToggleText" style="transition: color 0.2s;">深色主题</span>
+        <span id="themeToggleIcon" style="transition: color 0.2s;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="16" height="16"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path></svg>
+        </span>
+      </div>
+      <div id="feedbackBtn" class="profile-menu-item" style="display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; font-size: 13px; color: var(--text-main); border-radius: 8px; cursor: pointer; transition: all 0.2s; background: transparent;">
+        <span style="transition: color 0.2s;">帮助与反馈</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Modal -->
+  <div class="modal-overlay" id="feedbackModal">
+    <div class="modal-content" style="width: 320px; padding: 24px; border-radius: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700;">帮助与反馈</h2>
+        <button id="closeFeedbackModalBtn" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 0; display: flex; align-items: center;">&times;</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">问题或建议描述 <span style="color: #EF4444;">*</span></label>
+          <textarea id="feedbackContent" placeholder="请描述您遇到的问题或想要吐槽的建议..." style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s; min-height: 100px; resize: vertical; box-sizing: border-box; font-family: inherit;"></textarea>
+        </div>
+        <div id="feedbackErrorMsg" style="color: #EF4444; font-size: 12px; display: none;"></div>
+        <div id="feedbackSuccessMsg" style="color: #10B981; font-size: 12px; display: none; text-align: center;">感谢您的反馈！</div>
+        <button id="feedbackSubmitBtn" class="btn-primary" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 8px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+          <span id="feedbackBtnText">提交反馈</span>
+          <svg id="feedbackSpinner" class="chat-spinner-icon" viewBox="0 0 24 24" fill="none" style="width: 16px; height: 16px; display: none;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round" opacity="0.3"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Auth Modal -->
+  <div class="modal-overlay" id="authModal">
+    <div class="modal-content" style="width: 320px; padding: 24px; border-radius: 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0; font-size: 18px; font-weight: 700;">登录 / 注册</h2>
+        <button id="closeAuthModalBtn" style="background: none; border: none; font-size: 20px; color: var(--text-muted); cursor: pointer; padding: 0; display: flex; align-items: center;">&times;</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">邮箱 / 手机号</label>
+          <input type="text" id="authIdentifier" class="auth-input" placeholder="your@email.com 或 13800000000" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s;">
+        </div>
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px;">密码</label>
+          <input type="password" id="authPassword" class="auth-input" placeholder="••••••••" style="width: 100%; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; transition: border-color 0.2s;">
+        </div>
+        <div id="authErrorMsg" style="color: #EF4444; font-size: 12px; display: none;"></div>
+        <button id="authSubmitBtn" class="btn-primary" style="width: 100%; padding: 12px; font-size: 14px; font-weight: 600; border-radius: 8px; margin-top: 8px; display: flex; justify-content: center; align-items: center; gap: 8px;">
+          <span id="authBtnText">登录 / 注册</span>
+          <svg id="authSpinner" class="chat-spinner-icon" viewBox="0 0 24 24" fill="none" style="width: 16px; height: 16px; display: none;">
+            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" stroke-dasharray="32" stroke-linecap="round" opacity="0.3"/>
+            <path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="mismatchAlertModal">
+    <div class="modal-content" style="width: 320px; padding: 24px; border-radius: 16px; text-align: center;">
+      <div style="color: #EF4444; margin-bottom: 16px;">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+      </div>
+      <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: var(--text-main);">账号不一致提醒</h2>
+      <p style="margin: 0 0 8px; font-size: 14px; color: var(--text-muted); line-height: 1.5;">
+        检测到您在 Labeleases 的登录账号（<span id="mismatchWebPhone" style="font-weight: 600; color: var(--text-main);"></span>）与当前插件登录账号（<span id="mismatchPluginPhone" style="font-weight: 600; color: var(--text-main);"></span>）不一致！
+      </p>
+      <p style="margin: 0 0 20px; font-size: 13px; color: #EF4444; line-height: 1.5;">
+        为了防止您的录制数据失效或记录到错误的账号下，请退出并在插件中重新登录与 Labeleases 相同的账号。
+      </p>
+      <button id="mismatchLogoutBtn" class="btn-primary" style="width: 100%; padding: 10px; font-size: 14px; font-weight: 600; border-radius: 8px; background-color: #EF4444; color: white;">
+        立即退出并重新登录
+      </button>
+    </div>
+  </div>
+
+  <!-- Custom Generic Alert Modal -->
+  <div class="modal-overlay" id="customAlertModal">
+    <div class="modal-content" style="width: 280px; padding: 24px; text-align: center; border-radius: 16px; background: var(--modal-bg, #fff); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+      <div style="margin-bottom: 16px;">
+        <div style="width: 48px; height: 48px; background: #EEF2FF; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
+          <svg fill="none" stroke="var(--primary-color, #6B4EFF)" viewBox="0 0 24 24" width="24" height="24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+      </div>
+      <div style="font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 8px;">提示</div>
+      <div id="customAlertMessage" style="font-size: 14px; color: var(--text-muted); line-height: 1.5; margin-bottom: 24px; word-break: break-word;">
+        <!-- Message goes here -->
+      </div>
+      <button id="customAlertOkBtn" class="btn-primary" style="width: 100%; padding: 10px 0; border-radius: 8px; font-size: 14px; font-weight: 600;">确定</button>
+    </div>
+  </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirm Modal -->
+  <div class="modal-overlay" id="deleteConfirmModal">
+    <div class="modal-content" style="width: 320px; padding: 24px; border-radius: 16px; text-align: center;">
+      <div style="color: #EF4444; margin-bottom: 16px;">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
+          <path d="M3 6h18"></path>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          <line x1="10" y1="11" x2="10" y2="17"></line>
+          <line x1="14" y1="11" x2="14" y2="17"></line>
+        </svg>
+      </div>
+      <h2 style="margin: 0 0 12px; font-size: 18px; font-weight: 700; color: var(--text-main);">确认删除</h2>
+      <p id="deleteConfirmMessage" style="margin: 0 0 24px; font-size: 14px; color: var(--text-muted); line-height: 1.5;">
+        确定要删除这个文件吗？删除后将无法恢复。
+      </p>
+      <div style="display: flex; gap: 12px; justify-content: center;">
+        <button id="cancelDeleteBtn" class="btn-secondary" style="flex: 1; padding: 10px 0; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-color); color: var(--text-main); cursor: pointer; font-size: 14px; font-weight: 600;">取消</button>
+        <button id="confirmDeleteBtn" class="btn-primary" style="flex: 1; padding: 10px 0; margin: 0; border-radius: 8px; background-color: #EF4444; color: white; border: none; cursor: pointer; font-size: 14px; font-weight: 600;">确定删除</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.local.js"></script>
+  <script src="supabase-client.js"></script>
+  <script src="sidebar.js"></script>
+</body>
+</html>

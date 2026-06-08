@@ -656,9 +656,7 @@ export function Workbench() {
       {/* Greeting & Input Section */}
       <div className="flex flex-col items-center w-full">
         <h1 className="text-4xl font-bold text-slate-900 mb-4 text-center tracking-tight">{getGreeting()}！工作难题交给我来搞定吧</h1>
-        <p className="text-gray-500 text-lg mb-10 text-center max-w-2xl font-normal">
-          用真实生活工作场景的难题挑战 AI ，赚取高额报酬。
-        </p>
+        <p className="text-gray-500 text-lg mb-10 text-center max-w-2xl font-normal">用真实生活工作场景的难题挑战 AI ，赚取高额报酬。</p>
         <div className="w-full relative group animate-in fade-in zoom-in-95 duration-300" onClick={(e) => e.stopPropagation()}>
           <div className="absolute inset-0 bg-white/50 rounded-2xl shadow-sm transition-shadow duration-300"></div>
           <div className="relative bg-white rounded-2xl shadow-[0_2px_20px_rgba(0,0,0,0.04)] transition-all">

@@ -20,11 +20,19 @@ import {
   Layout,
   TrendingUp,
   Feather,
-  RefreshCw
+  RefreshCw,
+  Wrench,
+  Download,
+  Chrome,
+  Figma,
+  Code2,
+  Sparkles,
+  ChevronDown
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
+import { PluginDetailModal } from '../components/PluginDetailModal';
 
 const StatCard = ({ title, value, change, icon: Icon, color }: any) => (
   <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-shadow">
@@ -52,10 +60,12 @@ export function TaskHall() {
   const { t, language } = useLanguage();
   const location = useLocation();
   const [selectedTask, setSelectedTask] = useState<any>(null);
+  const [selectedPlugin, setSelectedPlugin] = useState<any>(null);
   const [qualificationStep, setQualificationStep] = useState<'idle' | 'scanning' | 'interview' | 'quiz' | 'failed' | 'passed'>('idle');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<Record<number, string>>({});
-  const [activeTab, setActiveTab] = useState<'public' | 'my'>((location.state as any)?.activeTab || 'public');
+  const [activeTab, setActiveTab] = useState<'square' | 'plugins'>((location.state as any)?.activeTab === 'plugins' ? 'plugins' : 'square');
+  const [taskFilter, setTaskFilter] = useState<'all' | 'available' | 'in_progress' | 'completed'>('all');
 
   const [myTasks, setMyTasks] = useState<any[]>(() => {
     // Initialize from localStorage first
@@ -149,15 +159,61 @@ export function TaskHall() {
     }
   ];
 
+  // Mock Data for Plugins
+  const mockPlugins = [
+    {
+      id: 'plugin-chrome-001',
+      title: 'AIDP 网页数据采集器',
+      type: 'Chrome 插件',
+      icon: Chrome,
+      color: 'text-blue-500',
+      bgColor: 'bg-blue-50',
+      borderColor: 'border-blue-100',
+      description: '在浏览器端无感采集用户行为轨迹、DOM 结构及交互事件。',
+      tags: ['数据采集', '网页分析', '用户行为'],
+      author: '@官方',
+      version: 'v2.4.1',
+      relatedTasksCount: 15
+    },
+    {
+      id: 'plugin-figma-001',
+      title: 'UI/UX 标注轨迹记录仪',
+      type: 'Figma 插件',
+      icon: Figma,
+      color: 'text-purple-500',
+      bgColor: 'bg-purple-50',
+      borderColor: 'border-purple-100',
+      description: '记录设计师在 Figma 中的图层操作、样式修改及组件使用轨迹。',
+      tags: ['UI/UX', '设计系统', '多模态'],
+      author: '@官方',
+      version: 'v1.2.0',
+      relatedTasksCount: 8
+    },
+    {
+      id: 'plugin-trae-001',
+      title: 'Coding 过程捕捉器',
+      type: 'Trae 插件',
+      icon: Code2,
+      color: 'text-green-500',
+      bgColor: 'bg-green-50',
+      borderColor: 'border-green-100',
+      description: '记录开发者在 IDE 中的代码编辑、终端执行及调试轨迹。',
+      tags: ['代码补全', '研发效能', 'Agent'],
+      author: '@官方',
+      version: 'v1.0.5',
+      relatedTasksCount: 22
+    }
+  ];
+
   const tasks = getTasks(language);
 
   const [taskAttempts, setTaskAttempts] = useState<Record<string, number>>({});
   
   const handleApply = (task: any) => {
-    // If already passed and in_progress, just switch to 'my' tab
+    // If already passed and in_progress, just switch filter
     const myTask = myTasks.find(t => t && t.id === task.id);
     if (myTask && myTask.status === 'in_progress') {
-      setActiveTab('my');
+      setTaskFilter('in_progress');
       return;
     }
 
@@ -352,68 +408,127 @@ export function TaskHall() {
 
   return (
     <div className="w-full px-4 md:px-6 lg:px-8 space-y-8">
-      {/* Header Section - Matches Image */}
-      <div className="relative rounded-[32px] overflow-hidden p-10 bg-gradient-to-r from-[#1a1c2e] via-[#24263b] to-[#362f4b] text-white shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row justify-between items-end gap-8">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-xs font-bold uppercase tracking-wider mb-4 text-lab-yellow">
-              <Zap className="w-3 h-3 fill-current" />
-              <span>{t.expert.sidebar.role} WORKSPACE</span>
+      {/* Global Tabs at the very top */}
+      <div className="flex p-1.5 bg-gray-100/80 backdrop-blur-xl rounded-2xl w-fit shadow-sm border border-white/50 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-white/40 to-transparent opacity-50 pointer-events-none"></div>
+        <button
+          onClick={() => setActiveTab('square')}
+          className={cn(
+            "relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 z-10",
+            activeTab === 'square' 
+              ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-200/50 scale-100" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-white/50 scale-95"
+          )}
+        >
+          <Globe className={cn("w-4 h-4 transition-colors", activeTab === 'square' ? "text-lab-blue" : "text-gray-400")} />
+          任务广场
+        </button>
+        <button
+          onClick={() => setActiveTab('plugins')}
+          className={cn(
+            "relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 z-10",
+            activeTab === 'plugins' 
+              ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-200/50 scale-100" 
+              : "text-gray-500 hover:text-gray-800 hover:bg-white/50 scale-95"
+          )}
+        >
+          <Wrench className={cn("w-4 h-4 transition-colors", activeTab === 'plugins' ? "text-orange-500" : "text-gray-400")} />
+          官方装备库
+        </button>
+      </div>
+
+      {activeTab === 'square' ? (
+        <div className="space-y-6">
+            {/* Header Section - Only visible in Task Square */}
+            <div className="relative rounded-[32px] p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 bg-gradient-to-r from-[#ffe4f0] via-[#fcf6fb] to-[#e7e1ff]">
+              {/* Ambient Background Orbs */}
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-200/20 to-purple-300/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none overflow-hidden"></div>
+              <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-tr from-pink-200/20 to-rose-200/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none overflow-hidden"></div>
+
+            <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-white text-xs font-bold uppercase tracking-wider mb-4 text-blue-500 shadow-sm">
+                  <Zap className="w-3.5 h-3.5 fill-current" />
+                  <span>{t.expert.sidebar.role} WORKSPACE</span>
+                </div>
+                <h1 className="text-4xl font-display font-extrabold mb-3 tracking-tight text-gray-900">{t.expert.taskHall.title}</h1>
+                <p className="text-gray-500 text-base max-w-xl font-medium leading-relaxed">发现适合您专业技能的高价值挑战。</p>
+              </div>
+              
+              <div className="flex items-center w-full md:w-[600px] bg-white border border-blue-200/60 rounded-xl shadow-[0_4px_20px_rgb(0,0,0,0.03)] hover:shadow-[0_4px_25px_rgb(0,0,0,0.06)] transition-all focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-400">
+                  {/* Category Dropdown (Mock) */}
+                  <div className="hidden sm:flex items-center gap-1.5 pl-4 pr-3 py-3.5 border-r border-gray-100 bg-gray-50/50 cursor-pointer hover:bg-gray-100 transition-colors shrink-0 group/dropdown rounded-l-xl">
+                    <span className="text-sm font-bold text-gray-600 group-hover/dropdown:text-gray-900">全部领域</span>
+                    <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
+                  </div>
+                  
+                  {/* Search Input */}
+                  <div className="relative flex-1 flex items-center bg-white rounded-r-xl">
+                    <input 
+                      type="text" 
+                      placeholder="用自然语言描述您的专业或需求，获取 AI 智能推荐..." 
+                      className="w-full pl-4 pr-12 py-3.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none bg-transparent"
+                    />
+                    
+                    {/* Sparkles AI Icon */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-blue-500 bg-blue-50 cursor-pointer hover:bg-blue-100 hover:text-blue-600 transition-colors group/ai">
+                      <Sparkles className="w-4 h-4" />
+                      {/* Tooltip */}
+                      <div className="absolute top-full right-0 mt-2 w-48 p-3 bg-blue-500 text-white rounded-xl shadow-xl opacity-0 translate-y-2 group-hover/ai:opacity-100 group-hover/ai:translate-y-0 transition-all pointer-events-none z-50">
+                        <div className="font-bold text-sm mb-1 flex items-center justify-between">
+                          AI 智能推荐
+                        </div>
+                        <div className="text-xs text-blue-50 opacity-90 leading-relaxed">
+                          支持自然语言描述，AI 将为您精准匹配最适合的赏金任务。
+                        </div>
+                        {/* Triangle indicator */}
+                        <div className="absolute -top-1.5 right-3 w-3 h-3 bg-blue-500 rotate-45"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
             </div>
-            <h1 className="text-4xl font-display font-bold mb-2 tracking-tight">{t.expert.taskHall.title}</h1>
-            <p className="text-gray-400 text-base max-w-xl font-medium leading-relaxed opacity-80">发现适合您专业技能的高价值挑战。</p>
           </div>
-          
-          <div className="flex items-center gap-3 w-full md:w-auto">
-            <div className="relative flex-1 md:w-80 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500 group-focus-within:text-white transition-colors" />
-              <input 
-                type="text" 
-                placeholder="搜索任务、技能关键词..." 
-                className="w-full pl-12 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-lab-purple/50 focus:bg-white/10 transition-all backdrop-blur-sm"
-              />
-              <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
-                 <Filter className="w-4 h-4 text-gray-300" />
+
+          {/* Sub Filters for Tasks */}
+          <div className="flex gap-2 pb-2 overflow-x-auto no-scrollbar border-b border-gray-100">
+            {[
+              { id: 'all', label: '全部' },
+              { id: 'available', label: '可领取' },
+              { id: 'in_progress', label: '进行中' },
+              { id: 'completed', label: '已完成' }
+            ].map(filter => (
+              <button
+                key={filter.id}
+                onClick={() => setTaskFilter(filter.id as any)}
+                className={cn(
+                  "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap",
+                  taskFilter === filter.id 
+                    ? "bg-gray-900 text-white shadow-sm" 
+                    : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                )}
+              >
+                {filter.label}
               </button>
-            </div>
-
+            ))}
           </div>
-        </div>
-      </div>
 
-      {/* Tabs */}
-      <div className="flex p-1 bg-gray-100 rounded-xl w-fit shadow-inner">
-        <button
-          onClick={() => setActiveTab('public')}
-          className={cn(
-            "px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2",
-            activeTab === 'public' 
-              ? "bg-white text-gray-900 shadow-sm" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-          )}
-        >
-          <Globe className="w-4 h-4" />
-          公共广场
-        </button>
-        <button
-          onClick={() => setActiveTab('my')}
-          className={cn(
-            "px-6 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2",
-            activeTab === 'my' 
-              ? "bg-white text-gray-900 shadow-sm" 
-              : "text-gray-500 hover:text-gray-700 hover:bg-gray-200/50"
-          )}
-        >
-          <Briefcase className="w-4 h-4" />
-          我的任务
-        </button>
-      </div>
-
-      {activeTab === 'public' ? (
-        <>
           {/* Task List */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            {tasks.map(task => (
+            {tasks
+              .filter(task => {
+                const myTask = myTasks.find(t => t && t.id === task.id);
+                if (taskFilter === 'all') return true;
+                if (taskFilter === 'available') return !myTask || myTask.status === 'failed';
+                if (taskFilter === 'in_progress') return myTask && myTask.status === 'in_progress';
+                if (taskFilter === 'completed') return myTask && myTask.status === 'completed';
+                return true;
+              })
+              .map(task => {
+                const myTask = myTasks.find(t => t && t.id === task.id);
+                const requiresPlugin = task.id === 'doubao-001' || task.title.includes('豆包');
+                
+                return (
               <div 
                 key={task.id}
                 className="group bg-white rounded-[24px] border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col relative hover:border-gray-200"
@@ -439,9 +554,17 @@ export function TaskHall() {
                     </div>
                   </div>
 
-                  <h3 className="text-xl font-bold text-black mb-3 group-hover:text-lab-blue transition-colors">
+                  <h3 className="text-xl font-bold text-black mb-3 group-hover:text-lab-blue transition-colors flex items-center gap-2 flex-wrap">
                     {task.title}
                   </h3>
+                  
+                  {requiresPlugin && (
+                    <div className="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-blue-50/50 text-blue-600 border border-blue-100/50">
+                      <Wrench className="w-3.5 h-3.5" />
+                      前置依赖：需安装官方插件
+                    </div>
+                  )}
+
                   <p className="text-gray-500 mb-6 text-sm leading-relaxed line-clamp-2">
                     {task.description}
                   </p>
@@ -458,162 +581,17 @@ export function TaskHall() {
 
                 <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between group-hover:bg-white transition-colors flex-wrap gap-4">
                   <div className="flex items-center text-xs font-medium text-gray-400 gap-4 min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
-                      <Clock className="w-4 h-4 shrink-0" />
-                      <span className="truncate group/tooltip relative">
-                        {task.deadline}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
-                          {task.deadline}
-                          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
-                        </span>
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
-                      <Users className="w-4 h-4 shrink-0" />
-                      <span className="truncate group/tooltip relative">
-                        <span className="font-bold text-gray-600 mr-1">{task.applicants}</span> 
-                        {t.expert.taskHall.card.applied}
-                        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
-                          {task.applicants} {t.expert.taskHall.card.applied}
-                          <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
-                        </span>
-                      </span>
-                    </span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      const myTask = myTasks.find(t => t && t.id === task.id);
-                      if (myTask) {
-                        if (myTask.status === 'failed') {
-                          handleApply(task);
-                        } else {
-                          setActiveTab('my');
-                        }
-                      } else {
-                        handleApply(task);
-                      }
-                    }}
-                    className={cn(
-                      "px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap shrink-0",
-                      (() => {
-                        const myTask = myTasks.find(t => t && t.id === task.id);
-                        if (myTask) {
-                          if (myTask.status === 'failed') {
-                            return "bg-orange-500 text-white hover:bg-orange-600 hover:scale-105";
-                          }
-                          return "bg-gray-100 text-gray-500 cursor-pointer hover:bg-gray-200";
-                        }
-                        return "bg-black text-white hover:bg-gray-800 hover:scale-105";
-                      })()
-                    )}
-                  >
-                    {(() => {
-                      const myTask = myTasks.find(t => t && t.id === task.id);
-                      if (myTask) {
-                        if (myTask.status === 'failed') {
-                          return (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5" />
-                              {language === 'zh' ? '重新申请' : 'Re-apply'}
-                            </>
-                          );
-                        }
-                        return (
-                          <>
-                            <CheckCircle2 className="w-3.5 h-3.5" />
-                            {language === 'zh' ? '已领取，去查看' : 'Applied, View'}
-                          </>
-                        );
-                      }
-                      return (
-                        <>
-                          {t.expert.taskHall.card.apply}
-                          <ChevronRight className="w-3.5 h-3.5" />
-                        </>
-                      );
-                    })()}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="space-y-8">
-          {/* Empty State */}
-          {myTasks.length === 0 ? (
-            <div className="w-full bg-white rounded-[24px] border border-gray-100 p-12 flex flex-col items-center justify-center text-center min-h-[400px]">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-6">
-                <Briefcase className="w-10 h-10 text-gray-300" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">暂无任务</h3>
-              <p className="text-gray-500 text-sm max-w-sm mb-8 leading-relaxed">
-                您还没有领取任何任务。前往公共广场浏览并领取适合您的任务，开始赚取收益吧！
-              </p>
-              <button 
-                onClick={() => setActiveTab('public')}
-                className="px-6 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-lg hover:shadow-xl"
-              >
-                去领取任务
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {myTasks.map(task => (
-                <div 
-                  key={task.id}
-                  className="group bg-white rounded-[24px] border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col relative hover:border-gray-200"
-                >
-                  <div className="p-8 flex-1 relative z-10">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex flex-wrap gap-2">
-                        <span className={cn(
-                          "px-2.5 py-1 rounded-full text-xs font-bold border",
-                          task.domain === 'Legal' || task.domain === '法律' ? "bg-blue-50 text-blue-600 border-blue-100" :
-                          task.domain === 'Medical' || task.domain === '医疗' ? "bg-green-50 text-green-600 border-green-100" :
-                          task.domain === 'AI' ? "bg-orange-50 text-orange-600 border-orange-100" :
-                          "bg-purple-50 text-purple-600 border-purple-100"
-                        )}>
-                          {task.domain}
-                        </span>
-                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-600 border border-gray-100">
-                          {task.type}
-                        </span>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-black">{task.price} <span className="text-sm font-normal text-gray-400">/ {task.unit}</span></div>
-                      </div>
-                    </div>
-
-                    <h3 className="text-xl font-bold text-black mb-3 group-hover:text-lab-blue transition-colors">
-                      {task.title}
-                    </h3>
-                    <p className="text-gray-500 mb-6 text-sm leading-relaxed line-clamp-2">
-                      {task.description}
-                    </p>
-
-                    <div className="flex flex-wrap gap-3">
-                      {task.attribution && (
-                         <div className="flex items-center gap-1.5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100 px-2.5 py-1.5 rounded-md text-xs text-indigo-700 font-bold shadow-sm" title="保留署名权">
-                             <Feather className="w-3.5 h-3.5 text-indigo-600" />
-                             署名权
-                         </div>
-                       )}
-                    </div>
-                  </div>
-
-                  <div className="px-6 py-5 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between group-hover:bg-white transition-colors flex-wrap gap-4">
-                    <div className="flex items-center text-xs font-medium text-gray-400 gap-4 min-w-0 flex-1">
+                    {myTask && myTask.status !== 'failed' ? (
                       <span className={cn(
                         "flex items-center gap-1.5 font-bold px-2 py-1 rounded-md shrink-0 whitespace-nowrap",
-                        (task as any).status === 'failed' 
-                          ? "text-red-600 bg-red-50" 
+                        myTask.status === 'completed' 
+                          ? "text-gray-600 bg-gray-100" 
                           : "text-green-600 bg-green-50"
                       )}>
-                        {(task as any).status === 'failed' ? (
+                        {myTask.status === 'completed' ? (
                           <>
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            未通过
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                            已完成
                           </>
                         ) : (
                           <>
@@ -622,43 +600,165 @@ export function TaskHall() {
                           </>
                         )}
                       </span>
-                      <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
-                        <Clock className="w-4 h-4 shrink-0" />
-                        <span className="truncate group/tooltip relative">
-                          {task.deadline}
-                          <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none z-50">
+                    ) : (
+                      <>
+                        <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                          <Clock className="w-4 h-4 shrink-0" />
+                          <span className="truncate group/tooltip relative">
                             {task.deadline}
-                            <span className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-800"></span>
                           </span>
                         </span>
-                      </span>
-                    </div>
-                    {task && (task as any).status !== 'failed' && (
-                      <button 
-                        onClick={() => {
-                          localStorage.setItem('current_sandbox_task', JSON.stringify(task));
-                          // Clean task object to avoid symbol/function serialization issues in History API
-                          const cleanTask = JSON.parse(JSON.stringify(task, (key, value) => {
-                            // Remove functions/components like 'icon' from requirements to make it serializable
-                            if (key === 'icon') return undefined;
-                            return value;
-                          }));
-                          // Pass the cleaned task object through state to the sandbox
-                          navigate('/expert/sandbox', { state: { mode: 'guided', task: cleanTask } });
-                        }}
-                        className="bg-black text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-gray-800 hover:scale-105 transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap shrink-0"
-                      >
-                        {language === 'zh' ? '继续任务' : 'Continue Task'}
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
+                        <span className="flex items-center gap-1.5 whitespace-nowrap min-w-0">
+                          <Users className="w-4 h-4 shrink-0" />
+                          <span className="truncate group/tooltip relative">
+                            <span className="font-bold text-gray-600 mr-1">{task.applicants}</span> 
+                            {t.expert.taskHall.card.applied}
+                          </span>
+                        </span>
+                      </>
                     )}
                   </div>
+                  
+                  {myTask && myTask.status !== 'failed' ? (
+                    <button 
+                      onClick={() => {
+                        localStorage.setItem('current_sandbox_task', JSON.stringify(task));
+                        const cleanTask = JSON.parse(JSON.stringify(task, (key, value) => {
+                          if (key === 'icon') return undefined;
+                          return value;
+                        }));
+                        navigate('/expert/sandbox', { state: { mode: 'guided', task: cleanTask } });
+                      }}
+                      className="bg-black text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-gray-800 hover:scale-105 transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap shrink-0"
+                    >
+                      {language === 'zh' ? '继续任务' : 'Continue Task'}
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  ) : (
+                    <button 
+                      onClick={() => handleApply(task)}
+                      className={cn(
+                        "px-4 py-2 rounded-full text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-md whitespace-nowrap shrink-0",
+                        myTask && myTask.status === 'failed'
+                          ? "bg-orange-500 text-white hover:bg-orange-600 hover:scale-105"
+                          : requiresPlugin 
+                            ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-105" 
+                            : "bg-black text-white hover:bg-gray-800 hover:scale-105"
+                      )}
+                    >
+                      {myTask && myTask.status === 'failed' ? (
+                        <>
+                          <RefreshCw className="w-3.5 h-3.5" />
+                          {language === 'zh' ? '重新申请' : 'Re-apply'}
+                        </>
+                      ) : requiresPlugin ? (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          {language === 'zh' ? '领装备并接单' : 'Get Tools & Apply'}
+                        </>
+                      ) : (
+                        <>
+                          {t.expert.taskHall.card.apply}
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            )})}
+          </div>
         </div>
-      )}
+      ) : activeTab === 'plugins' ? (
+        <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Header Section - Matches Task Square Style */}
+            <div className="relative rounded-[32px] p-8 md:p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 bg-gradient-to-r from-[#ffe4f0] via-[#fcf6fb] to-[#e7e1ff] overflow-hidden">
+              {/* Ambient Background Orbs */}
+              <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-indigo-200/20 to-purple-300/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-full h-full bg-gradient-to-tr from-pink-200/20 to-rose-200/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4 pointer-events-none"></div>
+
+              <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/90 backdrop-blur-md border border-white text-xs font-bold uppercase tracking-wider mb-4 text-orange-500 shadow-sm">
+                    <Wrench className="w-3.5 h-3.5 fill-current" />
+                    <span>OFFICIAL TOOLS</span>
+                  </div>
+                  <h2 className="text-3xl md:text-4xl font-display font-extrabold mb-3 tracking-tight text-gray-900">官方数据采集插件</h2>
+                  <div className="flex items-center gap-3 mt-2">
+                    <p className="text-gray-500 text-base font-medium leading-relaxed">安装对应环境的插件，无缝开启打工赚钱之旅。</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 w-full md:w-auto mt-4 md:mt-0">
+                  <div className="relative flex-1 md:w-72 group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-orange-500 transition-colors" />
+                    <input 
+                      type="text" 
+                      placeholder="搜索插件名称或环境..." 
+                      className="w-full pl-12 pr-12 py-3.5 bg-white/80 border border-gray-200/50 rounded-xl text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/30 focus:border-orange-500/30 focus:bg-white transition-all backdrop-blur-md shadow-sm"
+                    />
+                    <button className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-gray-50/80 rounded-lg hover:bg-gray-100 transition-colors border border-gray-100 text-gray-500 hover:text-gray-700">
+                       <Filter className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {mockPlugins.map(plugin => (
+              <div 
+                key={plugin.id}
+                onClick={() => setSelectedPlugin(plugin)}
+                className="group bg-white rounded-[24px] border border-gray-100 hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col relative hover:border-gray-200 cursor-pointer"
+              >
+                <div className="p-8 flex-1 relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div className={cn("w-14 h-14 rounded-2xl flex items-center justify-center border", plugin.bgColor, plugin.color, plugin.borderColor)}>
+                      <plugin.icon className="w-7 h-7" />
+                    </div>
+                    <span className="px-2.5 py-1 bg-gray-100 text-gray-500 text-xs font-bold rounded-md">
+                      {plugin.version}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-orange-50 text-orange-600 border border-orange-100 uppercase tracking-wider">
+                      OFFICIAL
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-50 text-gray-600 border border-gray-100">
+                      {plugin.type}
+                    </span>
+                  </div>
+
+                  <h3 className="text-lg font-bold text-black mb-2 group-hover:text-lab-blue transition-colors">
+                    {plugin.title}
+                  </h3>
+                  
+                  <p className="text-gray-500 mb-6 text-sm leading-relaxed">
+                    {plugin.description}
+                  </p>
+
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {plugin.tags.map(tag => (
+                      <span key={tag} className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded text-xs">
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="px-6 py-4 bg-gray-50/50 border-t border-gray-50 flex items-center justify-between group-hover:bg-white transition-colors">
+                  <div className="flex items-center gap-1.5 text-xs font-bold text-gray-500">
+                    <Briefcase className="w-4 h-4 text-gray-400" />
+                    <span>支持 {plugin.relatedTasksCount} 个专属任务</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       {/* Qualification Modal (Styled) */}
       {selectedTask && qualificationStep !== 'idle' && (
@@ -673,9 +773,9 @@ export function TaskHall() {
                   <div className="flex items-center gap-3 mt-1">
                     <p className="text-sm text-gray-500 font-medium">{selectedTask.title}</p>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-bold animate-pulse">
-                      {selectedTask.id === 'hle-001' ? '为方便体验demo，正确答案为：B、D、C' : 
-                       selectedTask.id === 'doubao-001' ? '为方便体验demo，正确答案为：B、B、B' :
-                       '为方便体验demo，正确答案为：A、B、C'}
+                      {selectedTask.id === 'hle-001' ? (language === 'zh' ? '为方便体验demo，正确答案为：B、D、C' : 'For demo purposes, correct answers: B, D, C') : 
+                       selectedTask.id === 'doubao-001' ? (language === 'zh' ? '为方便体验demo，正确答案为：B、B、B' : 'For demo purposes, correct answers: B, B, B') :
+                       (language === 'zh' ? '为方便体验demo，正确答案为：A、B、C' : 'For demo purposes, correct answers: A, B, C')}
                     </span>
                   </div>
                 </div>
@@ -862,7 +962,6 @@ export function TaskHall() {
                       setQualificationStep('idle'); 
                       setQuizAnswers({}); 
                       setCurrentQuestionIndex(0); 
-                      setActiveTab('my'); 
                       
                       // Also add it to localStorage immediately to prevent sync issues
                       const savedTasks = localStorage.getItem('expert_my_tasks');
@@ -874,13 +973,12 @@ export function TaskHall() {
                         setMyTasks(updatedTasks);
                       }
                       
-                      // navigate to same page to trigger re-render with 'my' tab
-                      navigate('/expert', { state: { activeTab: 'my' } });
+                      setTaskFilter('in_progress');
                       setSelectedTask(null);
                     }}
-                    className="bg-black text-white px-8 py-3 rounded-full text-sm font-bold hover:bg-gray-800 transition-colors shadow-lg"
+                    className="bg-black text-white px-8 py-3 rounded-full font-bold hover:bg-gray-800 transition-colors shadow-lg"
                   >
-                    {language === 'zh' ? '前往任务' : 'Go to Task'}
+                    {language === 'zh' ? '前往我的任务' : 'Go to My Tasks'}
                   </button>
                 </div>
               </div>
@@ -888,6 +986,14 @@ export function TaskHall() {
 
           </div>
         </div>
+      )}
+
+      {/* Plugin Detail Modal */}
+      {selectedPlugin && (
+        <PluginDetailModal 
+          plugin={selectedPlugin} 
+          onClose={() => setSelectedPlugin(null)} 
+        />
       )}
     </div>
   );

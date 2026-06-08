@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { createPortal } from 'react-dom';
 import { 
   Menu, Plus, BarChart2, Share2, Settings, MoreHorizontal, 
@@ -15,10 +15,48 @@ import { Sidebar } from '../components/Sidebar';
 
 export function NotebookPage() {
   const { folderId } = useParams();
+  const [searchParams] = useSearchParams();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isSourcesOpen, setIsSourcesOpen] = useState(true);
   const [isStudioOpen, setIsStudioOpen] = useState(true);
   const [showAddSourcesModal, setShowAddSourcesModal] = useState(false);
+
+  // Parse refs from URL if they exist
+  const refsParam = searchParams.get('refs');
+  const initialSelectedRefs = refsParam ? refsParam.split(',') : [];
+  
+  // Dummy reference data pool matching UnifiedChat references
+  const ALL_REFS = [
+    { id: '1', title: 'Social Connectedness and Local Contagion', icon: 'S', color: 'bg-black', checked: false },
+    { id: '2', title: 'Network Structure and Market Timing', icon: 'S', color: 'bg-orange-500', checked: false },
+    { id: '3', title: 'Local Information Advantage', icon: 'S', color: 'bg-blue-500', checked: false },
+    { id: '4', title: 'Information Diffusion in Social Networks', icon: 'S', color: 'bg-green-500', checked: false }
+  ];
+
+  // Use URL params to filter the list if refs exist, otherwise show some defaults
+  const [activeRefs, setActiveRefs] = useState(() => {
+    if (initialSelectedRefs.length > 0) {
+      return ALL_REFS.filter(r => initialSelectedRefs.includes(r.id)).map(r => ({ ...r, checked: true }));
+    }
+    // Default fallback
+    return [
+      { id: 'a', title: 'MIT华人校友力压Scale AI，创建AI标注公司五年零融资...', icon: 'S', color: 'bg-black', checked: true },
+      { id: 'b', title: 'Surge AI Customer Reviews & References - FeaturedCu...', icon: 'S', color: 'bg-orange-500', checked: true },
+      { id: 'c', title: 'Surge AI: The Ultimate Guide for AI Practitioners', icon: 'S', color: 'bg-blue-500', checked: true },
+      { id: 'd', title: 'https://m.36kr.com/p/3588973287506440', icon: 'Kr', color: 'bg-red-100 text-red-600', checked: true, isUrl: true },
+      { id: 'e', title: '第17页 - NLP 新纪元2022-11-30: 人类语言通天塔正式建成', icon: '知', color: 'bg-blue-100 text-blue-600', checked: true }
+    ];
+  });
+
+  const toggleRefChecked = (id: string) => {
+    setActiveRefs(prev => prev.map(r => r.id === id ? { ...r, checked: !r.checked } : r));
+  };
+
+  const toggleAllRefs = (checked: boolean) => {
+    setActiveRefs(prev => prev.map(r => ({ ...r, checked })));
+  };
+
+  const allChecked = activeRefs.length > 0 && activeRefs.every(r => r.checked);
 
   return (
     <div className="flex h-screen bg-gray-50 font-sans overflow-hidden">
@@ -78,39 +116,45 @@ export function NotebookPage() {
 
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-sm text-gray-600">全选所有来源</span>
-                  <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                  <input 
+                    type="checkbox" 
+                    checked={allChecked}
+                    onChange={(e) => toggleAllRefs(e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer" 
+                  />
                 </div>
 
                 <ul className="flex flex-col gap-3">
-                  <li className="flex items-start gap-3 group">
-                    <div className="w-5 h-5 rounded bg-black flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">S</div>
-                    <p className="text-sm text-gray-800 line-clamp-2 flex-1">MIT华人校友力压Scale AI，创建AI标注公司五年零融资...</p>
-                    <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 shrink-0" />
-                  </li>
-
-                  <li className="flex items-start gap-3 group">
-                    <div className="w-5 h-5 rounded bg-orange-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">S</div>
-                    <p className="text-sm text-gray-800 line-clamp-2 flex-1">Surge AI Customer Reviews & References - FeaturedCu...</p>
-                    <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 shrink-0" />
-                  </li>
-
-                  <li className="flex items-start gap-3 group">
-                    <div className="w-5 h-5 rounded bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5">S</div>
-                    <p className="text-sm text-gray-800 line-clamp-2 flex-1">Surge AI: The Ultimate Guide for AI Practitioners</p>
-                    <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 shrink-0" />
-                  </li>
-
-                  <li className="flex items-start gap-3 group bg-red-50/50 p-2 -mx-2 rounded-lg">
-                    <div className="w-5 h-5 rounded-full bg-red-100 flex items-center justify-center text-red-600 text-[10px] font-bold shrink-0 mt-0.5">Kr</div>
-                    <p className="text-sm text-red-900 truncate flex-1 mt-0.5">https://m.36kr.com/p/3588973287506440</p>
-                    <div className="w-4 h-4 rounded-full border border-red-300 flex items-center justify-center text-[10px] text-red-500 mt-0.5 shrink-0">i</div>
-                  </li>
-                  
-                  <li className="flex items-start gap-3 group">
-                    <div className="w-5 h-5 rounded bg-blue-100 flex items-center justify-center text-blue-600 text-[10px] font-bold shrink-0 mt-0.5">知</div>
-                    <p className="text-sm text-gray-800 line-clamp-2 flex-1">第17页 - NLP 新纪元2022-11-30: 人类语言通天塔正式建成</p>
-                    <input type="checkbox" defaultChecked className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 shrink-0" />
-                  </li>
+                  {activeRefs.map(ref => (
+                    <li key={ref.id} className={cn(
+                      "flex items-start gap-3 group transition-colors",
+                      ref.isUrl ? "bg-red-50/50 p-2 -mx-2 rounded-lg" : ""
+                    )}>
+                      <div className={cn(
+                        "w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5",
+                        ref.color,
+                        ref.isUrl ? "rounded-full" : "text-white"
+                      )}>
+                        {ref.icon}
+                      </div>
+                      <p className={cn(
+                        "text-sm flex-1",
+                        ref.isUrl ? "text-red-900 truncate mt-0.5" : "text-gray-800 line-clamp-2"
+                      )}>
+                        {ref.title}
+                      </p>
+                      {ref.isUrl ? (
+                        <div className="w-4 h-4 rounded-full border border-red-300 flex items-center justify-center text-[10px] text-red-500 mt-0.5 shrink-0">i</div>
+                      ) : (
+                        <input 
+                          type="checkbox" 
+                          checked={ref.checked}
+                          onChange={() => toggleRefChecked(ref.id)}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 mt-1 shrink-0 cursor-pointer" 
+                        />
+                      )}
+                    </li>
+                  ))}
                 </ul>
               </section>
             )}

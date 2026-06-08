@@ -7,6 +7,19 @@ local-npm-cache/
 .npm/
 .eslintcache
 
+# Secrets - NEVER commit
+.env
+.env.*
+dotenv
+config.local.js
+
+# Local cache & temp junk
+local-npm-cache/
+*.zip
+divs.txt
+temp_css.txt
+db.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

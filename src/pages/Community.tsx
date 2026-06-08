@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MessageSquare, Clock, CheckCircle2, Search, Flame, Eye, ThumbsUp, ChevronRight, ChevronLeft, HelpCircle, X, Send, ChevronDown, ArrowLeft, ArrowRight, PenTool, TrendingUp, Feather, Trophy, Scale, AlertCircle, Zap, Bot, Star } from 'lucide-react';
+import { MessageSquare, Clock, CheckCircle2, Search, Flame, Eye, ThumbsUp, ChevronRight, ChevronLeft, HelpCircle, X, Send, ChevronDown, ArrowLeft, ArrowRight, PenTool, TrendingUp, Feather, Trophy, Scale, AlertCircle, Zap, Bot, Star, Plus, ShoppingBag, Download, Briefcase } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { KnowledgeBaseView } from '../components/KnowledgeBaseView';
+import { SkillDetailModal } from '../components/SkillDetailModal';
 
 const BOUNTY_CHALLENGES = [
   {
@@ -708,8 +709,24 @@ const PostDetailPage = ({ post, onBack, onDelete }: { post: typeof mockFeed[0], 
 export function Community() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState('recommend'); // recommend, avatars
+  const [activeTab, setActiveTab] = useState(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    return tab || 'recommend';
+  });
   
+  const [skillsSubTab, setSkillsSubTab] = useState('market'); // market, my_skills
+  const [skillSearchQuery, setSkillSearchQuery] = useState('');
+  
+  // 监听路由参数变化更新 activeTab
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+    }
+  }, [location.search]);
+
   // 监听路由状态变化
   useEffect(() => {
     if (location.state?.defaultTab) {
@@ -722,6 +739,117 @@ export function Community() {
   const [selectedDisciplines, setSelectedDisciplines] = useState<string[]>(['全部']);
   const [selectedAvatarCategory, setSelectedAvatarCategory] = useState('全部');
   const [addedAvatarIds, setAddedAvatarIds] = useState<string[]>([]);
+  
+  // 技能商店相关状态
+  const [showCreateSkillModal, setShowCreateSkillModal] = useState(false);
+  const [installedSkills, setInstalledSkills] = useState<any[]>([]);
+  const [installedSkillSearchQuery, setInstalledSkillSearchQuery] = useState('');
+  const [showAllInstalled, setShowAllInstalled] = useState(false);
+  const [selectedSkillCategory, setSelectedSkillCategory] = useState('全部');
+  const [selectedSkillDetail, setSelectedSkillDetail] = useState<any>(null);
+
+  const SKILL_CATEGORIES = ['全部', 'AIDP', '法律', '商业', '医疗', '设计', '编程', '写作'];
+
+  // 模拟收藏数和下载数的状态管理
+  const [skillStats, setSkillStats] = useState<Record<string, { stars: number, downloads: string }>>({});
+  
+  const skillMarkdownData: Record<string, string> = {
+    'aidp_skill_creator': `---
+name: "skill-creator"
+description: "MANDATORY tool for creating SKILLs. Invoke IMMEDIATELY when user wants to create/add/make a new skill, or asks how to create a skill."
+---
+
+# Skill Creator
+
+This skill helps you create new SKILLs for the workspace. It adopts the **Agent Skills open standard**, treating skills as filesystem-based domain knowledge packages.
+
+## When to Use
+
+**CRITICAL: You MUST invoke this skill IMMEDIATELY as your FIRST action when:**
+- User wants to create a new skill
+- User wants to add a custom skill to the workspace
+- User asks to set up a skill template
+- User asks "how to create a skill"
+- User mentions creating/adding/making any skill
+
+## SKILL Structure (Agent Skills Standard)
+
+Following the latest Agent Skills standard (like Claude's implementation), a skill is a self-contained directory with a core \`SKILL.md\` file. It relies on **Progressive Disclosure**: the YAML frontmatter is used for intent recognition, while the Markdown body provides the full SOP. It also clearly separates the SOP (Skill) from atomic tools (MCP).
+
+When the user asks to create a skill, scaffold the following structure in \`skills/<skill-name>/\`:
+
+1. **\`SKILL.md\` (The Core)**
+   - **YAML Frontmatter (Metadata Layer)**: Must contain \`name\`, \`description\` (crucial for intent recognition), and optional \`dependencies\` or \`metadata\`. This is the lightweight context loaded first.
+   - **Markdown Body (Instruction Layer)**: The System Prompt (SOP) defining the skill's persona, boundaries, workflow steps, and how to use specific tools (MCP).
+2. **\`references/\` (Optional RAG/Context)**
+   - Directory for supplemental knowledge base files (Markdown, PDFs, etc.). The \`SKILL.md\` can instruct the agent to read these only when specific conditions are met.
+3. **\`scripts/\` or \`tools/\` (Optional Executables/MCP)**
+   - Directory for local scripts (\`.py\`, \`.js\`, \`.sh\`) or MCP server definitions that the skill might need to invoke.
+
+## Creation & Iteration Workflow (Human-in-the-Loop + Agent RL)
+
+To create a high-quality skill, you must act as a proactive evaluator. Follow this Step-by-Step wizard approach:
+
+1. **Requirement Gathering (HITL)**: 
+   - **CRITICAL**: Use the \`AskUserQuestion\` tool to gather structured requirements (e.g., skill name, specific domain, need for MCP tools, need for RAG). Do not just guess. Provide multi-choice options where applicable to guide the user.
+2. **Draft the Core Files**:
+   - Create \`skills/<skill-name>/SKILL.md\` with the YAML Frontmatter (\`name\`, \`description\`) and Markdown Body (SOP).
+   - Create \`skills/<skill-name>/references/\` and \`skills/<skill-name>/scripts/\` if required.
+3. **Generate Test Cases & Eval**:
+   - Once the draft is created, **proactively generate 2-3 mock test cases** representing real-world user queries for this skill.
+   - Simulate a run of these test cases using the new \`SKILL.md\` SOP.
+   - Generate an Eval Review report showing the difference between "Without Skill" and "With Skill".
+4. **Iterative Refinement (RLHF)**:
+   - Present the Eval results to the user.
+   - Ask for feedback: "Does this output meet your expectations? What feels clunky or fails?"
+   - Use their feedback to refine the \`SKILL.md\`. Every iteration is a manual RLHF cycle.
+`
+  };
+
+  // 初始化随机数，确保不会每次渲染都变化
+  useEffect(() => {
+    const stats: Record<string, { stars: number, downloads: string }> = {};
+    // 假设所有技能都有一个唯一的 id
+    // 这里我们先初始化可能出现的所有技能 id 的随机数
+    const allSkillIds = [
+      'law_101', 'law_102', 'law_103', 'law_104', 'law_105',
+      'biz_201', 'med_301', 'aidp_307', 'aidp_skill_creator'
+    ];
+    
+    allSkillIds.forEach(id => {
+      stats[id] = {
+        stars: Math.floor(Math.random() * 500) + 50,
+        downloads: (Math.random() * 20 + 1).toFixed(1) + 'k'
+      };
+    });
+    setSkillStats(stats);
+  }, []);
+
+  const handleToggleSkill = (skill: any, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const isInstalled = installedSkills.some(s => s.id === skill.id);
+    if (isInstalled) {
+      setInstalledSkills(prev => prev.filter(s => s.id !== skill.id));
+      // 取消收藏时，数字-1
+      setSkillStats(prev => ({
+        ...prev,
+        [skill.id]: {
+          ...prev[skill.id],
+          stars: Math.max(0, prev[skill.id].stars - 1)
+        }
+      }));
+    } else {
+      setInstalledSkills(prev => [...prev, skill]);
+      // 收藏时，数字+1
+      setSkillStats(prev => ({
+        ...prev,
+        [skill.id]: {
+          ...prev[skill.id],
+          stars: (prev[skill.id]?.stars || 0) + 1
+        }
+      }));
+    }
+  };
 
   // 监听分身添加/移除状态
   useEffect(() => {
@@ -870,8 +998,10 @@ export function Community() {
       ) : (
         <>
       {/* Tab Navigation */}
+      {/* 专家分身和技能商店均不再显示此 Tab */}
+      {activeTab === 'recommend' && (
       <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 pb-0 pt-8">
-        <div className="flex items-center gap-2 mb-6 bg-white rounded-xl p-1 border border-gray-200 shadow-sm">
+        <div className="flex items-center gap-2 mb-6 bg-white rounded-xl p-1 border border-gray-200 shadow-sm w-fit">
           <button
             onClick={() => setActiveTab('recommend')}
             className={cn(
@@ -881,20 +1011,9 @@ export function Community() {
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
             )}
           >推荐</button>
-          <button
-            onClick={() => setActiveTab('avatars')}
-            className={cn(
-              "px-6 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center gap-2",
-              activeTab === 'avatars'
-                ? "bg-black text-white shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-            )}
-          >
-            <Bot className="w-4 h-4" />
-            数字分身
-          </button>
         </div>
       </div>
+      )}
 
       {/* Main Content Area */}
       <div className="w-full max-w-[1440px] mx-auto px-6 md:px-12 lg:px-24 pb-16 pt-0">
@@ -1269,7 +1388,7 @@ export function Community() {
           
           </div>
           </>
-        ) : (
+        ) : activeTab === 'avatars' ? (
           <div className="w-full">
             {/* 分类筛选 */}
             <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2">
@@ -1412,9 +1531,356 @@ export function Community() {
               </div>
             )}
           </div>
-        )}
+        ) : activeTab === 'skills' ? (
+          <div className="w-full flex flex-col items-center">
+            {/* Header Area */}
+            <div className="text-center mb-10 mt-6 w-full">
+              {/* Sub Tabs for Skills */}
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                <div className="flex p-1.5 bg-gray-100/80 backdrop-blur-xl rounded-2xl w-fit shadow-sm border border-white/50 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/40 to-transparent opacity-50 pointer-events-none"></div>
+                  <button
+                    onClick={() => setSkillsSubTab('market')}
+                    className={cn(
+                      "relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 z-10",
+                      skillsSubTab === 'market' 
+                        ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-200/50 scale-100" 
+                        : "text-gray-500 hover:text-gray-800 hover:bg-white/50 scale-95"
+                    )}
+                  >
+                    <ShoppingBag className={cn("w-4 h-4 transition-colors", skillsSubTab === 'market' ? "text-lab-blue" : "text-gray-400")} />
+                    技能市场
+                  </button>
+                  <button
+                    onClick={() => setSkillsSubTab('my_skills')}
+                    className={cn(
+                      "relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 z-10",
+                      skillsSubTab === 'my_skills' 
+                        ? "bg-white text-black shadow-[0_2px_10px_rgba(0,0,0,0.08)] border border-gray-200/50 scale-100" 
+                        : "text-gray-500 hover:text-gray-800 hover:bg-white/50 scale-95"
+                    )}
+                  >
+                    <Briefcase className={cn("w-4 h-4 transition-colors", skillsSubTab === 'my_skills' ? "text-lab-purple" : "text-gray-400")} />
+                    我的技能
+                  </button>
+                </div>
+                <button 
+                  onClick={() => setShowCreateSkillModal(true)}
+                  className="px-4 py-2 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-sm flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  创建技能
+                </button>
+              </div>
+
+              {skillsSubTab === 'my_skills' ? (
+                <>
+                  <div className="mb-12 w-full text-left">
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-bold text-gray-900">我创建的</h2>
+                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-0.5 rounded-full">0</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex flex-col items-center justify-center py-12 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200 mb-12">
+                      <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                        <Bot className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">还没有创建过技能</h3>
+                      <p className="text-gray-500 text-sm mb-6 max-w-md text-center">使用 AI 帮你快速创建一个专属技能，让它成为你的得力助手！</p>
+                      <button 
+                        onClick={() => setShowCreateSkillModal(true)}
+                        className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-sm flex items-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        创建技能
+                      </button>
+                    </div>
+
+                    <div className="w-full h-px bg-gray-100 mb-10"></div>
+
+                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-bold text-gray-900">我的收藏</h2>
+                        <span className="bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-0.5 rounded-full">{installedSkills.length}</span>
+                      </div>
+                      <div className="relative w-full md:w-64 shrink-0">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <input
+                          type="text"
+                          placeholder="在已安装中搜索..."
+                          value={installedSkillSearchQuery}
+                          onChange={(e) => setInstalledSkillSearchQuery(e.target.value)}
+                          className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
+                        />
+                      </div>
+                    </div>
+                    
+                    {installedSkills.length > 0 ? (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 w-full">
+                          {installedSkills
+                            .filter(skill => installedSkillSearchQuery ? skill.title.toLowerCase().includes(installedSkillSearchQuery.toLowerCase()) || skill.desc.toLowerCase().includes(installedSkillSearchQuery.toLowerCase()) : true)
+                            .slice(0, showAllInstalled ? installedSkills.length : 8)
+                            .map(skill => {
+                              const isInstalled = true;
+                              return (
+                            <div key={skill.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-gray-300 transition-all cursor-pointer group flex flex-col h-full text-left" onClick={() => setSelectedSkillDetail({ ...skill, description: skill.desc || skill.description })}>
+                              <div className="flex items-center gap-3 mb-4">
+                                <div className={`w-10 h-10 rounded-xl ${skill.color || 'bg-gray-800'} ${!skill.color && !skill.icon ? 'text-white' : ''} flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform`}>
+                                  {skill.icon ? skill.icon : <span className="text-white font-bold">{skill.title.charAt(0).toUpperCase()}</span>}
+                                </div>
+                                <h3 className="font-bold text-gray-900 text-[15px] group-hover:text-blue-600 transition-colors truncate">{skill.title}</h3>
+                              </div>
+                              <p className="text-[13px] text-gray-500 leading-relaxed mb-6 flex-1 line-clamp-3">
+                                {skill.desc}
+                              </p>
+                              <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                                <div className="text-xs text-gray-400 font-medium">
+                                  {skill.author || '系统内置'}
+                                </div>
+                                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                  <button 
+                                    onClick={(e) => handleToggleSkill(skill, e)}
+                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-gray-100 text-gray-500"
+                                    title={isInstalled ? "取消收藏" : "收藏"}
+                                  >
+                                    <Star className={`w-4 h-4 ${isInstalled ? 'fill-amber-400 text-amber-400' : ''}`} />
+                                    <span>{skillStats[skill.id]?.stars || 0}</span>
+                                  </button>
+                                  <button 
+                                    onClick={(e) => {
+                                      setSelectedSkillDetail({ ...skill, defaultTab: 'install' });
+                                    }}
+                                    className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-gray-100 text-gray-500"
+                                    title="下载/安装"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                    <span>{skillStats[skill.id]?.downloads || '0k'}</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          )})}
+                        </div>
+                        
+                        {installedSkills.length > 8 && (
+                          <div className="flex justify-center mt-6">
+                            <button 
+                              onClick={() => setShowAllInstalled(!showAllInstalled)}
+                              className="text-xs text-gray-500 hover:text-gray-900 font-medium transition-colors"
+                            >
+                              {showAllInstalled ? '收起' : `显示更多 (${installedSkills.length - 8})`}
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-20 bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm mb-4">
+                          <Zap className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">还没有收藏任何技能</h3>
+                        <p className="text-gray-500 text-sm mb-6 max-w-md text-center">
+                          去技能商店逛逛，发现更多有趣好用的 AI 技能吧！
+                        </p>
+                        <button
+                          onClick={() => setSkillsSubTab('market')}
+                          className="px-6 py-2.5 bg-black text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-sm flex items-center gap-2"
+                        >
+                          <ShoppingBag className="w-4 h-4" />
+                          去技能市场
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="w-full">
+                  {/* Skill Categories (Domain tags similar to avatars) and Search */}
+                  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 justify-start w-full md:w-auto no-scrollbar">
+                      {SKILL_CATEGORIES.map((category) => (
+                        <button
+                          key={category}
+                          onClick={() => setSelectedSkillCategory(category)}
+                          className={cn(
+                            "px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap shrink-0",
+                            selectedSkillCategory === category
+                              ? "bg-black text-white"
+                              : "bg-white border border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                          )}
+                        >
+                          {category}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="relative w-full md:w-64 shrink-0">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="搜索技能名称或描述..."
+                        value={skillSearchQuery}
+                        onChange={(e) => setSkillSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-400 transition-all"
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Category Tags */}
+                  {selectedSkillCategory === '法律' && (
+                    <>
+                      <p className="text-[13px] text-gray-500 max-w-3xl mx-auto leading-relaxed mt-2 mb-8">我们深入拆解了律所、法务及企业主的日常高频诉求，精选出一系列覆盖合同审阅、合规审计及争议解决的专业 Skill 矩阵。无论你是追求提效办案的从业者，还是寻求法律支持的企业家，都能在这里找到精准的 AI 解决方案。</p>
+                    </>
+                  )}
+                  {selectedSkillCategory !== '全部' && selectedSkillCategory !== '法律' && selectedSkillCategory !== '商业' && selectedSkillCategory !== '医疗' && selectedSkillCategory !== 'AIDP' && (
+                    <div className="flex flex-col items-center justify-center py-12">
+                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                        <Bot className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500 text-center max-w-md">当前领域还没有相关的技能，不如你来做个表率，创建一个专属技能吧！</p>
+                    </div>
+                  )}
+
+                  {/* Skills Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 w-full text-left">
+                    {[
+                      {
+                        id: 'aidp_skill_creator',
+                        title: 'Skill 生成器',
+                        icon: '🛠️',
+                        description: '自动化生成标准化大模型 Skill 的元技能。遵循 Agent Skills 开放标准，支持 Human-in-the-Loop 问答式向导、自动生成 Mock 测试用例，以及基于用户反馈的自我进化（Agent RL）。',
+                        author: '@官方',
+                        category: 'AIDP'
+                      },
+                      {
+                        id: 'law_101',
+                        title: '诉讼大师',
+                        icon: '⚖️',
+                        description: '专业诉讼文书起草。浓缩多年经验，权威数据支撑，高效帮你写出符合法院要求的专业起诉状...',
+                        author: '@lei0306',
+                        category: '法律'
+                      },
+                      {
+                        id: 'law_102',
+                        title: '法律备忘录',
+                        icon: '📝',
+                        description: '生成符合顶尖律所标准的专业法律备忘录，支持类案检索、法规验证及AIRAC分析，律师值得拥有的...',
+                        author: '@lei0306',
+                        category: '法律'
+                      },
+                      {
+                        id: 'law_103',
+                        title: '法律类案检索',
+                        icon: '📚',
+                        description: '基于专业数据库的法律案例检索与类案分析工具。通过关键词/法条/案由检索并核验，快速找到...',
+                        author: '@lei0306',
+                        category: '法律'
+                      },
+                      {
+                        id: 'law_104',
+                        title: '法律咨询报告',
+                        icon: '📋',
+                        description: '提供适用性法律咨询，涵盖常见法律问题解答与建议...',
+                        author: '@Xpert自选',
+                        category: '法律'
+                      },
+                      {
+                        id: 'law_105',
+                        title: '商业合同审查',
+                        icon: '🔍',
+                        description: '全方位审查各类商业合同（买卖、租赁、服务等）。深入剖析条款，精准识别风险点，并给出...',
+                        author: '@lei0306',
+                        category: '商业'
+                      },
+                      {
+                        id: 'biz_201',
+                        title: '商业计划书生成器',
+                        icon: '💼',
+                        description: '一键生成结构完整的商业计划书，涵盖市场分析、竞品对比、盈利模式与财务预测，助你快速打动投资人...',
+                        author: '@StartupPro',
+                        category: '商业'
+                      },
+                      {
+                        id: 'med_301',
+                        title: '医学文献解读助手',
+                        icon: '🏥',
+                        description: '快速提取医学前沿论文核心观点，支持自动翻译与专业术语解析，为临床医生与科研人员节省大量时间...',
+                        author: '@Dr.AI',
+                        category: '医疗'
+                      },
+                      {
+                        id: 'aidp_307',
+                        title: '全自动PII脱敏',
+                        icon: '🛡️',
+                        description: '在数据进入人工标注流程前，自动识别并替换文本或图像中的个人隐私信息（姓名、电话、身份证号等）...',
+                        author: '@SafeData',
+                        category: 'AIDP'
+                      }
+                    ]
+                    .filter(skill => selectedSkillCategory === '全部' || skill.category === selectedSkillCategory)
+                    .filter(skill => skillSearchQuery ? skill.title.toLowerCase().includes(skillSearchQuery.toLowerCase()) || skill.description.toLowerCase().includes(skillSearchQuery.toLowerCase()) : true)
+                    .map(skill => {
+                      const isInstalled = installedSkills.some(s => s.id === skill.id);
+                      return (
+                        <div key={skill.id} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-[0_2px_10px_rgb(0,0,0,0.02)] hover:shadow-lg hover:border-purple-200 transition-all cursor-pointer group flex flex-col h-full" onClick={() => setSelectedSkillDetail(skill)}>
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                              {skill.icon}
+                            </div>
+                            <h3 className="font-bold text-gray-900 text-[15px] group-hover:text-purple-600 transition-colors">{skill.title}</h3>
+                          </div>
+                          <p className="text-[13px] text-gray-500 leading-relaxed mb-6 flex-1 line-clamp-3">
+                            {skill.description}
+                          </p>
+                          <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-50">
+                            <div className="text-xs text-gray-400 font-medium">
+                              {skill.author}
+                            </div>
+                            <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                              <button 
+                                onClick={(e) => handleToggleSkill(skill, e)}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-gray-100 text-gray-500"
+                                title={isInstalled ? "取消收藏" : "收藏"}
+                              >
+                                <Star className={`w-4 h-4 ${isInstalled ? 'fill-amber-400 text-amber-400' : ''}`} />
+                                <span>{skillStats[skill.id]?.stars || 0}</span>
+                              </button>
+                              <button 
+                                onClick={(e) => {
+                                  setSelectedSkillDetail({ ...skill, defaultTab: 'install' });
+                                }}
+                                className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium transition-all hover:bg-gray-100 text-gray-500"
+                                title="下载/安装"
+                              >
+                                <Download className="w-4 h-4" />
+                                <span>{skillStats[skill.id]?.downloads || '0k'}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
         </>
+      )}
+
+      {selectedSkillDetail && (
+        <SkillDetailModal 
+          skill={selectedSkillDetail} 
+          onClose={() => setSelectedSkillDetail(null)} 
+          onInstall={handleToggleSkill} 
+          isInstalled={installedSkills.some(s => s.id === selectedSkillDetail.id)} 
+          skillStats={skillStats[selectedSkillDetail.id]}
+          markdownContent={skillMarkdownData[selectedSkillDetail.id]}
+        />
       )}
     </div>
   );

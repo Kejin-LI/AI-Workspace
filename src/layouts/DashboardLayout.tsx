@@ -13,7 +13,7 @@ export function DashboardLayout() {
 
   // Auto-collapse sidebar when entering sandbox/chat
   useEffect(() => {
-    if (location.pathname.includes('/expert/sandbox')) {
+    if (location.pathname.includes('/expert/sandbox') || location.pathname.includes('/expert/unified-chat')) {
       setIsSidebarCollapsed(true);
     }
   }, [location.pathname]);
@@ -39,7 +39,7 @@ export function DashboardLayout() {
           "p-0 overflow-hidden" // Main container should always be flex and handle its own overflow if it has sidebar
         )}>
           <div className={cn("flex-1 h-full overflow-y-auto relative", location.pathname.includes('/expert/sandbox') ? "" : "p-6")}>
-            <Outlet />
+            <Outlet context={{ isSidebarCollapsed, setIsSidebarCollapsed }} />
           </div>
           {(location.pathname.includes('/expert/workbench') || (location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'roundtable')) && (
             <div 

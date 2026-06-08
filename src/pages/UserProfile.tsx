@@ -24,7 +24,18 @@ import {
   Plus,
   ShieldAlert,
   X,
-  BookOpen
+  BookOpen,
+  Bot,
+  FolderOpen,
+  Folder,
+  Code,
+  Globe2,
+  Terminal,
+  Play,
+  Flame,
+  Sparkles,
+  FileJson,
+  ArrowRight
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { KnowledgeBaseView } from '../components/KnowledgeBaseView';
@@ -91,6 +102,12 @@ export function UserProfile() {
   });
 
   // Save preferences when they change
+  const [userCreatedSkills, setUserCreatedSkills] = useState([
+    { id: 'usr_sk_1', name: '金融情感分析', desc: '基于预训练模型的金融新闻情感分类脚本，自动输出积极/消极概率', type: 'Python', status: 'published', icon: <Terminal className="w-5 h-5" />, code: 'import pandas as pd...' },
+    { id: 'usr_sk_2', name: '合同条款提取器', desc: '使用正则表达式和轻量NLP模型提取合同中的关键条款（金额、期限、违约责任）', type: 'API', status: 'draft', icon: <Globe2 className="w-5 h-5" />, endpoint: 'https://api.example.com/extract' },
+  ]);
+  const [showCreateSkillModal, setShowCreateSkillModal] = useState(false);
+
   useEffect(() => {
     localStorage.setItem('expert_profile_preferences', JSON.stringify(preferences));
     // Dispatch a custom event so other components can react to preference changes
@@ -101,8 +118,7 @@ export function UserProfile() {
     setPreferences(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  // 数字分身管理弹窗状态
-  const [showSpModal, setShowSpModal] = useState(false);
+  const [isEditingSp, setIsEditingSp] = useState(false);
   const [spConfig, setSpConfig] = useState({
     name: '李珂瑾的数字分身',
     systemPrompt: `你是一个资深的 AI 产品经理和数据评测专家。
@@ -118,6 +134,146 @@ export function UserProfile() {
       "近期关注强化学习（RLHF）在垂直领域的应用"
     ]
   });
+
+  const [avatarSkills, setAvatarSkills] = useState([
+    { id: 'sk1', name: 'Python执行器', desc: '在沙盒环境中执行Python代码', icon: '🐍', active: true },
+    { id: 'sk2', name: 'PDF解析器', desc: '解析并提取PDF文档中的结构化信息', icon: '📄', active: true },
+    { id: 'sk3', name: '网页检索', desc: '通过搜索引擎获取最新信息', icon: '🔍', active: false }
+  ]);
+
+  const [avatarKBs, setAvatarKBs] = useState([
+    { id: 'kb1', name: 'AI 评测方法论库', docs: 128, updated: '2026-03-15' },
+    { id: 'kb2', name: '多轮对话精选 Badcase', docs: 45, updated: '2026-03-10' }
+  ]);
+
+  const [showAddSkillModal, setShowAddSkillModal] = useState(false);
+  const [availableSkillsToAdd] = useState([
+    { id: 'sk_new_1', name: '法律文书生成', desc: '根据关键信息自动生成标准法律文书', icon: '⚖️' },
+    { id: 'sk_new_2', name: '财报深度分析', desc: '自动提取财报关键指标并生成对比分析', icon: '📊' },
+    { id: 'sk_new_3', name: '代码漏洞扫描', desc: '静态分析代码中的潜在安全漏洞', icon: '🐛' },
+    { id: 'sk_new_4', name: '医学影像解读', desc: '辅助分析CT/MRI影像报告', icon: '🏥' }
+  ]);
+
+  const handleAddSkill = (skill: typeof availableSkillsToAdd[0]) => {
+    if (!avatarSkills.find(s => s.id === skill.id)) {
+      setAvatarSkills([...avatarSkills, { ...skill, active: true }]);
+    }
+    setShowAddSkillModal(false);
+  };
+
+  const handleRemoveSkill = (skillId: string) => {
+    setAvatarSkills(avatarSkills.filter(s => s.id !== skillId));
+  };
+
+  const [showAddKbModal, setShowAddKbModal] = useState(false);
+  const [expandedKbFolders, setExpandedKbFolders] = useState<string[]>(['kb_folder_1']);
+  const [selectedKbIds, setSelectedKbIds] = useState<string[]>(['kb1', 'kb2']); // Initialize with already linked KBs
+
+  const mockAvailableKBs = [
+    {
+      id: 'kb_folder_1',
+      name: '评测与标注规范',
+      type: 'folder',
+      children: [
+        { id: 'kb1', name: 'AI 评测方法论库', type: 'doc', updated: '2026-03-15' },
+        { id: 'kb2', name: '多轮对话精选 Badcase', type: 'doc', updated: '2026-03-10' },
+        { id: 'kb_doc_3', name: '大模型安全对齐指南', type: 'doc', updated: '2026-02-28' },
+      ]
+    },
+    {
+      id: 'kb_folder_2',
+      name: '医疗领域行业资料',
+      type: 'folder',
+      children: [
+        { id: 'kb_doc_4', name: '2025版心血管疾病诊疗指南', type: 'doc', updated: '2026-01-15' },
+        { id: 'kb_doc_5', name: '常见医学影像误诊案例集', type: 'doc', updated: '2025-12-20' },
+      ]
+    },
+    {
+      id: 'kb_folder_3',
+      name: '法律行业模板',
+      type: 'folder',
+      children: [
+        { id: 'kb_doc_6', name: '红圈所投资意向书模板', type: 'doc', updated: '2026-04-01' },
+      ]
+    }
+  ];
+
+  const toggleKbFolder = (folderId: string) => {
+    setExpandedKbFolders(prev => 
+      prev.includes(folderId) ? prev.filter(id => id !== folderId) : [...prev, folderId]
+    );
+  };
+
+  const handleSelectKb = (id: string, type: 'folder' | 'doc', childrenIds?: string[]) => {
+    setSelectedKbIds(prev => {
+      let newSelection = [...prev];
+      if (type === 'folder' && childrenIds) {
+        const allSelected = childrenIds.every(childId => prev.includes(childId));
+        if (allSelected) {
+          // Deselect folder and all children
+          newSelection = newSelection.filter(item => !childrenIds.includes(item) && item !== id);
+        } else {
+          // Select folder and all children
+          childrenIds.forEach(childId => {
+            if (!newSelection.includes(childId)) newSelection.push(childId);
+          });
+          if (!newSelection.includes(id)) newSelection.push(id);
+        }
+      } else {
+        // Toggle single doc
+        if (newSelection.includes(id)) {
+          newSelection = newSelection.filter(item => item !== id);
+          // If a child is deselected, its parent folder should also be deselected (if it was selected)
+          mockAvailableKBs.forEach(folder => {
+            if (folder.children.some(child => child.id === id)) {
+              newSelection = newSelection.filter(item => item !== folder.id);
+            }
+          });
+        } else {
+          newSelection.push(id);
+          // Check if all children of a parent are now selected
+          mockAvailableKBs.forEach(folder => {
+            if (folder.children.some(child => child.id === id)) {
+              const allChildrenSelected = folder.children.every(child => newSelection.includes(child.id));
+              if (allChildrenSelected && !newSelection.includes(folder.id)) {
+                newSelection.push(folder.id);
+              }
+            }
+          });
+        }
+      }
+      return newSelection;
+    });
+  };
+
+  const handleSaveKbSelection = () => {
+    const newAvatarKBs: any[] = [];
+    
+    // Flatten the mock data to easily find selected docs
+    const allDocs = mockAvailableKBs.flatMap(folder => folder.children);
+    
+    // Add selected docs to avatarKBs
+    selectedKbIds.forEach(id => {
+      const doc = allDocs.find(d => d.id === id);
+      if (doc) {
+        newAvatarKBs.push({
+          id: doc.id,
+          name: doc.name,
+          docs: 1, // Mocking doc count for individual files
+          updated: doc.updated
+        });
+      }
+    });
+
+    setAvatarKBs(newAvatarKBs);
+    setShowAddKbModal(false);
+  };
+
+  const handleRemoveKb = (kbId: string) => {
+    setAvatarKBs(avatarKBs.filter(kb => kb.id !== kbId));
+    setSelectedKbIds(selectedKbIds.filter(id => id !== kbId));
+  };
 
   useEffect(() => {
     const state = location.state as { activeTab?: string; scrollTo?: string } | null;
@@ -211,7 +367,7 @@ export function UserProfile() {
 
   const handleSaveSp = () => {
     // 模拟保存操作
-    setShowSpModal(false);
+    setIsEditingSp(false);
     // 这里可以添加实际的 API 调用
   };
 
@@ -257,7 +413,7 @@ export function UserProfile() {
       <div className="flex-1 min-w-0 bg-transparent space-y-6 flex flex-col">
         {/* Tabs Navigation */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 px-6 pt-2 flex items-center gap-8 overflow-x-auto no-scrollbar">
-          {['身份与背书', '数字分身', '资产与成就', '专业内容与创作', '隐私与偏好'].map(tab => (
+          {['身份与背书', '数字分身', '我的技能', '资产与成就', '隐私与偏好'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -926,105 +1082,416 @@ export function UserProfile() {
         {/* 2.5 数字分身 (Digital Avatar) */}
         {activeTab === '数字分身' && (
           <div className="space-y-6 flex-1 flex flex-col">
+            {/* 分身状态卡片 */}
             <div className="bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 rounded-xl border border-indigo-100 p-6 shadow-sm relative overflow-hidden">
               <div className="absolute -left-4 -bottom-4 w-32 h-32 bg-indigo-200/20 rounded-full blur-2xl"></div>
               <div className="absolute right-6 top-1/2 -translate-y-1/2 opacity-[0.03]">
-                <Zap className="w-32 h-32 text-indigo-900" />
+                <Bot className="w-32 h-32 text-indigo-900" />
               </div>
 
               <div className="relative z-10">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 bg-indigo-100 rounded-lg text-indigo-700">
-                      <Zap className="w-5 h-5" />
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white rounded-full p-1 shadow-sm border border-indigo-100 flex items-center justify-center relative">
+                      <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" alt="Avatar" className="w-full h-full rounded-full object-cover" />
+                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
                     </div>
-                    <h3 className="text-lg font-bold text-gray-900">我的数字分身</h3>
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900">{spConfig.name}</h3>
+                      <p className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        分身已激活，正在后台自动处理长尾任务
+                      </p>
+                    </div>
                   </div>
-                  <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm">
-                    Beta 测试中
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] font-bold rounded-full shadow-sm flex items-center gap-1">
+                      <Award className="w-3 h-3" />
+                      Lv3 专家分身
+                    </span>
+                  </div>
                 </div>
                 
                 <p className="text-sm text-indigo-900/70 mb-6 max-w-2xl">
-                  基于您的历史答题数据、偏好设置和知识库自动生成的 AI 助手。它可以在您离线时，以您的专业视角和表达风格，参与社区讨论或协助处理基础评测任务。
+                  作为您的全天候“数字代工”，分身将严格遵循您的专业逻辑和安全护栏，代表您在平台自动接单、处理复杂的评测与审计任务，为您创造真正的“睡后收入”。
                 </p>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-indigo-50">
-                    <div className="text-2xl font-black text-indigo-900 mb-1">45<span className="text-xs font-normal text-indigo-600 ml-1">篇</span></div>
-                    <div className="text-xs text-indigo-800/60 font-medium">已学习专业文章</div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-indigo-50">
+                    <div className="text-xs text-indigo-800/60 font-medium mb-1 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> 自动接单数</div>
+                    <div className="text-xl font-black text-indigo-900">1,245</div>
                   </div>
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-indigo-50">
-                    <div className="text-2xl font-black text-purple-900 mb-1">128<span className="text-xs font-normal text-purple-600 ml-1">条</span></div>
-                    <div className="text-xs text-purple-800/60 font-medium">提取核心观点</div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-indigo-50">
+                    <div className="text-xs text-purple-800/60 font-medium mb-1 flex items-center gap-1"><Coins className="w-3 h-3" /> 累计睡后收入</div>
+                    <div className="text-xl font-black text-purple-900">¥ 4,520</div>
                   </div>
-                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-indigo-50">
-                    <div className="text-2xl font-black text-pink-900 mb-1">12<span className="text-xs font-normal text-pink-600 ml-1">次</span></div>
-                    <div className="text-xs text-pink-800/60 font-medium">累计代理回复</div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-indigo-50">
+                    <div className="text-xs text-pink-800/60 font-medium mb-1 flex items-center gap-1"><ShieldCheck className="w-3 h-3" /> 任务验收率</div>
+                    <div className="text-xl font-black text-pink-900">98.5%</div>
+                  </div>
+                  <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-indigo-50">
+                    <div className="text-xs text-blue-800/60 font-medium mb-1 flex items-center gap-1"><Star className="w-3 h-3" /> 社区调用次数</div>
+                    <div className="text-xl font-black text-blue-900">8,932</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 分身能力配置区 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              
+              {/* 左侧：核心逻辑与边界 */}
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden flex flex-col h-full">
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-blue-100 rounded-md text-blue-600">
+                        <Edit3 className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-gray-900">核心人设与边界 (SP)</h3>
+                    </div>
+                    {!isEditingSp ? (
+                      <button 
+                        onClick={() => setIsEditingSp(true)}
+                        className="text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition-colors"
+                      >编辑设定</button>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => setIsEditingSp(false)}
+                          className="text-xs font-medium text-gray-500 hover:text-gray-700 bg-gray-100 px-3 py-1.5 rounded-lg transition-colors"
+                        >取消</button>
+                        <button 
+                          onClick={() => setIsEditingSp(false)}
+                          className="text-xs font-medium text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                        >
+                          <CheckCircle className="w-3.5 h-3.5" /> 保存
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col space-y-4 overflow-y-auto max-h-[600px]">
+                    {!isEditingSp ? (
+                      <>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">分身昵称</h4>
+                          <div className="text-sm font-bold text-gray-900 px-1">
+                            {spConfig.name}
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">System Prompt</h4>
+                          <div className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-100 font-mono whitespace-pre-wrap">
+                            {spConfig.systemPrompt}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">长期记忆 (Long-term Memory)</h4>
+                            <span className="text-[10px] text-gray-400">系统自动提取</span>
+                          </div>
+                          <div className="bg-white border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+                            <div className="divide-y divide-gray-50">
+                              {spConfig.memory.map((mem, idx) => (
+                                <div key={idx} className="flex items-start gap-2 p-3">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0"></div>
+                                  <p className="text-xs text-gray-600 leading-relaxed">{mem}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3" /> 拒绝策略 (Guardrails)
+                          </h4>
+                          <div className="bg-red-50 border border-red-100 rounded-lg p-3 text-xs text-red-800 flex flex-col gap-1.5">
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 shrink-0"></span>
+                              <span>涉及具体法律判决结果的预测，必须直接拒答并要求人类介入。</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 shrink-0"></span>
+                              <span>禁止提供任何绕过合规审查的绕行方案 (Jailbreak)。</span>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="space-y-4 flex-1 flex flex-col">
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">分身昵称</h4>
+                          <input
+                            type="text"
+                            value={spConfig.name}
+                            onChange={(e) => setSpConfig({...spConfig, name: e.target.value})}
+                            className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                            placeholder="请输入您的数字分身昵称..."
+                          />
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">System Prompt</h4>
+                            <button className="text-[10px] text-blue-600 font-medium hover:text-blue-700 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded">
+                              <Zap className="w-3 h-3" /> AI 自动优化
+                            </button>
+                          </div>
+                          <textarea
+                            value={spConfig.systemPrompt}
+                            onChange={(e) => setSpConfig({...spConfig, systemPrompt: e.target.value})}
+                            className="w-full min-h-[160px] p-3 rounded-lg border border-gray-200 bg-white text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none leading-relaxed font-mono"
+                            placeholder="在此输入您的 System Prompt..."
+                          />
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">长期记忆 (Long-term Memory)</h4>
+                            <span className="text-[10px] text-gray-400">系统自动提取</span>
+                          </div>
+                          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                            <div className="divide-y divide-gray-100">
+                              {spConfig.memory.map((mem, idx) => (
+                                <div key={idx} className="flex items-start gap-2 p-3 hover:bg-gray-50 transition-colors group">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0"></div>
+                                  <p className="text-xs text-gray-700 flex-1 leading-relaxed">{mem}</p>
+                                  <button className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
+                            <ShieldAlert className="w-3 h-3" /> 拒绝策略 (仅展示，需联系平台配置)
+                          </h4>
+                          <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 text-xs text-gray-500 flex flex-col gap-1.5 opacity-70">
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
+                              <span>涉及具体法律判决结果的预测，必须直接拒答并要求人类介入。</span>
+                            </div>
+                            <div className="flex items-start gap-1.5">
+                              <span className="w-1 h-1 rounded-full bg-gray-400 mt-1.5 shrink-0"></span>
+                              <span>禁止提供任何绕过合规审查的绕行方案 (Jailbreak)。</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* 右侧：行动力与记忆库 */}
+              <div className="space-y-6">
+                
+                {/* 动态能力挂载 (Skills) */}
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-amber-100 rounded-md text-amber-600">
+                        <Zap className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-gray-900">动态能力挂载 (Skills)</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowAddSkillModal(true)}
+                      className="text-xs font-medium text-amber-600 hover:text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> 添加
+                    </button>
+                  </div>
+                  <div className="p-2">
+                    {avatarSkills.map((skill) => (
+                      <div key={skill.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors group">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-lg shadow-sm border border-gray-200/50">
+                            {skill.icon}
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{skill.name}</div>
+                            <div className="text-xs text-gray-500">{skill.desc}</div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <button className="text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Settings className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleRemoveSkill(skill.id)}
+                            className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                            title="移除技能"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex justify-end">
-                  <button 
-                    onClick={() => setShowSpModal(true)}
-                    className="flex items-center gap-2 px-6 py-2.5 bg-gray-900 text-white text-sm font-bold rounded-xl hover:bg-gray-800 transition-all shadow-sm hover:shadow-md group"
-                  >
-                    <Settings className="w-4 h-4 group-hover:rotate-45 transition-transform duration-300" />
-                    管理分身设定 (SP)
-                  </button>
+                {/* 细分领域记忆库 (Knowledge Bases) */}
+                <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                  <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 bg-emerald-100 rounded-md text-emerald-600">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <h3 className="font-bold text-gray-900">专属知识库 (RAG)</h3>
+                    </div>
+                    <button 
+                      onClick={() => setShowAddKbModal(true)}
+                      className="text-xs font-medium text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <Plus className="w-3 h-3" /> 关联
+                    </button>
+                  </div>
+                  <div className="p-2">
+                    {avatarKBs.map((kb) => (
+                      <div key={kb.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-gray-100 text-gray-500 shadow-sm border border-gray-200/50">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900 flex items-center gap-1.5">
+                              {kb.name}
+                              <span className="text-[10px] px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded border border-emerald-100">{kb.docs} 篇文档</span>
+                            </div>
+                            <div className="text-xs text-gray-500">最近更新: {kb.updated}</div>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => handleRemoveKb(kb.id)}
+                          className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                          title="移除知识库"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
+
               </div>
             </div>
           </div>
         )}
 
-        {/* 3. 专业内容与创作 (Professional Content & Creation) */}
-        {activeTab === '专业内容与创作' && (
+        {/* 2.6 我的技能 (My Skills) */}
+        {activeTab === '我的技能' && (
           <div className="space-y-6 flex-1 flex flex-col">
-            <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">代表作与专业输出</h3>
-                <button className="text-sm text-blue-600 font-medium hover:underline">去发布</button>
+            <div className="flex items-center justify-between bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <Code className="w-5 h-5 text-blue-600" />
+                  我开发的技能 (Skills)
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">创建和管理您自己的自动化脚本、API 工具和自定义逻辑。发布后可挂载至数字分身或分享至社区。</p>
               </div>
-              <div className="space-y-4">
-                {userPosts.map((post, i) => (
-                  <div key={post.id || i} className="p-4 border border-gray-100 rounded-lg hover:border-blue-200 hover:bg-blue-50/30 transition-colors cursor-pointer">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-xs rounded font-medium">{post.type}</span>
-                    </div>
-                    <h4 className="font-bold text-gray-900 mb-2">{post.title}</h4>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
-                      <span>发布于 {post.date}</span>
-                      <span className="flex items-center gap-1"><Info className="w-3 h-3" /> 浏览 {post.views}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <button 
+                onClick={() => setShowCreateSkillModal(true)}
+                className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-bold rounded-xl hover:bg-blue-700 transition-all shadow-sm whitespace-nowrap shrink-0"
+              >
+                <Plus className="w-4 h-4" />
+                创建技能
+              </button>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1">
-              <h3 className="text-lg font-bold text-gray-900 mb-6">最近互动记录</h3>
-              <div className="space-y-6 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-gray-200 before:to-transparent">
-                {[
-                  { action: '点赞了帖子', target: '大模型评测中的幻觉现象分析', time: '2小时前', icon: ThumbsUp, color: 'text-blue-500', bg: 'bg-blue-100' },
-                  { action: '收藏了模板', target: '金融研报实体抽取标准SOP', time: '昨天', icon: Heart, color: 'text-red-500', bg: 'bg-red-100' },
-                  { action: '评论了', target: '多模态数据标注的最佳实践', time: '3天前', icon: MessageSquare, color: 'text-green-500', bg: 'bg-green-100' }
-                ].map((record, i) => (
-                  <div key={i} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full border-4 border-white bg-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2">
-                      <div className={cn("w-8 h-8 rounded-full flex items-center justify-center", record.bg)}>
-                        <record.icon className={cn("w-4 h-4", record.color)} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {userCreatedSkills.map(skill => (
+                <div key={skill.id} className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow group flex flex-col">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-gray-600 border border-gray-100">
+                        {skill.icon}
+                      </div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">{skill.name}</h4>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-medium">{skill.type}</span>
+                          {skill.status === 'published' ? (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-600 border border-green-100 rounded font-medium flex items-center gap-1">
+                              <CheckCircle className="w-3 h-3" /> 已发布
+                            </span>
+                          ) : (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 border border-amber-100 rounded font-medium">草稿</span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] p-4 rounded-xl border border-gray-100 bg-white shadow-sm hover:border-blue-100 hover:shadow-md transition-all">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-bold text-gray-900">{record.action}</span>
-                        <span className="text-xs text-gray-500">{record.time}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 truncate">{record.target}</p>
+                    <button className="text-gray-400 hover:text-blue-600 transition-colors p-1 opacity-0 group-hover:opacity-100">
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-600 line-clamp-2 mb-4 flex-1">{skill.desc}</p>
+                  <div className="flex justify-between items-center pt-4 border-t border-gray-50">
+                    <div className="flex items-center gap-3">
+                      <button className="text-xs text-gray-500 hover:text-gray-900 font-medium flex items-center gap-1 transition-colors">
+                        <Play className="w-3.5 h-3.5" /> 运行测试
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button className="text-gray-400 hover:text-red-500 transition-colors p-1" title="删除">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
+
+              {/* 空状态/新建引导 */}
+              <button 
+                onClick={() => setShowCreateSkillModal(true)}
+                className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-gray-500 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50/50 transition-all min-h-[200px]"
+              >
+                <div className="w-12 h-12 rounded-full bg-white shadow-sm flex items-center justify-center mb-3">
+                  <Plus className="w-6 h-6" />
+                </div>
+                <span className="font-bold">创建新技能</span>
+                <span className="text-xs mt-1">支持 Python, Node.js 或 API 接入</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 4. 资产与成就 (Assets & Achievements) */}
+        {activeTab === '资产与成就' && (
+          <div className="space-y-6 flex-1 flex flex-col">
+            {/* 资产与成就内容 */}
+            <div className="bg-white rounded-xl border border-gray-100 p-6 shadow-sm flex-1">
+              <h3 className="text-lg font-bold text-gray-900 mb-6">资产与成就</h3>
+              {/* 这里补充资产与成就的具体内容，或者保持原有的代码 */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-100/50 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center mb-2">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <div className="text-2xl font-black text-amber-900">2</div>
+                  <div className="text-xs font-medium text-amber-700/70 mt-1">评测集署名</div>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-xl border border-blue-100/50 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-2">
+                    <CheckCircle className="w-5 h-5" />
+                  </div>
+                  <div className="text-2xl font-black text-blue-900">1,284</div>
+                  <div className="text-xs font-medium text-blue-700/70 mt-1">采纳的高阶标注</div>
+                </div>
+                <div className="p-4 bg-purple-50 rounded-xl border border-purple-100/50 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mb-2">
+                    <Flame className="w-5 h-5" />
+                  </div>
+                  <div className="text-2xl font-black text-purple-900">45</div>
+                  <div className="text-xs font-medium text-purple-700/70 mt-1">连续活跃天数</div>
+                </div>
+                <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-100/50 flex flex-col items-center justify-center text-center">
+                  <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mb-2">
+                    <Coins className="w-5 h-5" />
+                  </div>
+                  <div className="text-2xl font-black text-emerald-900">12.5k</div>
+                  <div className="text-xs font-medium text-emerald-700/70 mt-1">累计获得算力积分</div>
+                </div>
               </div>
             </div>
           </div>
@@ -1252,103 +1719,262 @@ export function UserProfile() {
           </div>
         </div>
       </div>
-      {/* 数字分身管理弹窗 */}
-      {showSpModal && (
+
+      {/* 添加技能弹窗 */}
+      {showAddSkillModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-indigo-50/50 to-white">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-amber-50/50 to-white">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
                   <Zap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">数字分身设定 (System Prompt)</h3>
-                  <p className="text-xs text-gray-500 mt-0.5">定制您的专属 AI 助手行为与记忆</p>
+                  <h3 className="text-lg font-bold text-gray-900">添加动态能力 (Skill)</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">为您的分身挂载更多专属技能</p>
                 </div>
               </div>
               <button 
-                onClick={() => setShowSpModal(false)}
+                onClick={() => setShowAddSkillModal(false)}
                 className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              {/* 分身昵称设定 */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    分身昵称
-                  </h4>
-                </div>
-                <input
-                  type="text"
-                  value={spConfig.name}
-                  onChange={(e) => setSpConfig({...spConfig, name: e.target.value})}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all"
-                  placeholder="请输入您的数字分身昵称..."
-                />
-              </div>
-
-              {/* System Prompt 设定 */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                    核心设定 (System Prompt)
-                  </h4>
-                  <button className="text-xs text-indigo-600 font-medium hover:text-indigo-700 flex items-center gap-1">
-                    <Zap className="w-3.5 h-3.5" />
-                    AI 自动优化
-                  </button>
-                </div>
-                <textarea
-                  value={spConfig.systemPrompt}
-                  onChange={(e) => setSpConfig({...spConfig, systemPrompt: e.target.value})}
-                  className="w-full h-48 p-4 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 focus:bg-white transition-all resize-none leading-relaxed"
-                  placeholder="在此输入您的 System Prompt..."
-                />
-              </div>
-
-              {/* 长期记忆 */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="text-sm font-bold text-gray-900">长期记忆 (Long-term Memory)</h4>
-                  <span className="text-xs text-gray-400">系统根据您的平台行为自动提取</span>
-                </div>
-                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <div className="p-3 bg-gray-50/50 border-b border-gray-100 text-xs text-gray-500 flex items-center gap-2">
-                    <Info className="w-3.5 h-3.5" />
-                    这些记忆会在生成回答时作为背景上下文提供给模型
-                  </div>
-                  <div className="divide-y divide-gray-100">
-                    {spConfig.memory.map((mem, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-4 hover:bg-gray-50 transition-colors group">
-                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-400 mt-1.5 shrink-0"></div>
-                        <p className="text-sm text-gray-700 flex-1">{mem}</p>
-                        <button className="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+              {availableSkillsToAdd.map((skill) => {
+                const isAdded = avatarSkills.some(s => s.id === skill.id);
+                return (
+                  <div key={skill.id} className={cn("flex items-center justify-between p-4 rounded-xl border bg-white transition-all", isAdded ? "border-gray-200 opacity-60" : "border-gray-100 hover:border-amber-200 hover:shadow-sm")}>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center text-xl shadow-sm border border-gray-100">
+                        {skill.icon}
                       </div>
-                    ))}
+                      <div>
+                        <div className="text-sm font-bold text-gray-900">{skill.name}</div>
+                        <div className="text-xs text-gray-500 mt-0.5">{skill.desc}</div>
+                      </div>
+                    </div>
+                    <button 
+                      onClick={() => !isAdded && handleAddSkill(skill)}
+                      disabled={isAdded}
+                      className={cn("px-4 py-1.5 rounded-lg text-xs font-bold transition-colors", isAdded ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-amber-100 text-amber-700 hover:bg-amber-200")}
+                    >
+                      {isAdded ? '已添加' : '添加'}
+                    </button>
                   </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 关联知识库弹窗 */}
+      {showAddKbModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[80vh] overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100 bg-gradient-to-r from-emerald-50/50 to-white">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600">
+                  <BookOpen className="w-5 h-5" />
                 </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">关联知识库 (RAG)</h3>
+                  <p className="text-xs text-gray-500 mt-0.5">选择要让分身学习的私有文档资料</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAddKbModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-50">
+              {mockAvailableKBs.map((folder) => {
+                const isExpanded = expandedKbFolders.includes(folder.id);
+                const allChildrenSelected = folder.children.length > 0 && folder.children.every(child => selectedKbIds.includes(child.id));
+                const someChildrenSelected = folder.children.some(child => selectedKbIds.includes(child.id)) && !allChildrenSelected;
+                
+                return (
+                  <div key={folder.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden transition-all shadow-sm">
+                    {/* Folder Header */}
+                    <div 
+                      className="flex items-center p-3 hover:bg-gray-50 cursor-pointer border-b border-transparent data-[expanded=true]:border-gray-100"
+                      data-expanded={isExpanded}
+                    >
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); toggleKbFolder(folder.id); }}
+                        className="p-1 mr-1 text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <ChevronRight className={cn("w-4 h-4 transition-transform", isExpanded ? "rotate-90" : "")} />
+                      </button>
+                      
+                      <div className="flex items-center gap-3 flex-1" onClick={() => toggleKbFolder(folder.id)}>
+                        {isExpanded ? <FolderOpen className="w-4 h-4 text-emerald-500" /> : <Folder className="w-4 h-4 text-emerald-500" />}
+                        <span className="text-sm font-bold text-gray-900">{folder.name}</span>
+                        <span className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded ml-auto">{folder.children.length} 项</span>
+                      </div>
+                      
+                      <div className="ml-4 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <input 
+                          type="checkbox"
+                          className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                          checked={allChildrenSelected}
+                          ref={input => { if (input) input.indeterminate = someChildrenSelected; }}
+                          onChange={() => handleSelectKb(folder.id, 'folder', folder.children.map(c => c.id))}
+                        />
+                      </div>
+                    </div>
+                    
+                    {/* Documents List */}
+                    {isExpanded && (
+                      <div className="bg-gray-50/50 p-2 space-y-1">
+                        {folder.children.map(doc => {
+                          const isSelected = selectedKbIds.includes(doc.id);
+                          return (
+                            <div 
+                              key={doc.id}
+                              className="flex items-center justify-between p-2 pl-8 hover:bg-white rounded-lg transition-colors cursor-pointer group"
+                              onClick={() => handleSelectKb(doc.id, 'doc')}
+                            >
+                              <div className="flex items-center gap-3">
+                                <FileText className="w-3.5 h-3.5 text-gray-400" />
+                                <div>
+                                  <div className="text-xs font-medium text-gray-700">{doc.name}</div>
+                                  <div className="text-[10px] text-gray-400 mt-0.5">更新于: {doc.updated}</div>
+                                </div>
+                              </div>
+                              <input 
+                                type="checkbox"
+                                className="w-3.5 h-3.5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                                checked={isSelected}
+                                onChange={() => handleSelectKb(doc.id, 'doc')}
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="p-6 border-t border-gray-100 bg-white flex justify-between items-center">
+              <div className="text-xs text-gray-500">
+                已选择 <span className="font-bold text-emerald-600">{selectedKbIds.filter(id => id.startsWith('kb')).length}</span> 份文档
+              </div>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowAddKbModal(false)}
+                  className="px-5 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+                >
+                  取消
+                </button>
+                <button 
+                  onClick={handleSaveKbSelection}
+                  className="px-5 py-2 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-all flex items-center gap-1.5"
+                >
+                  <CheckCircle className="w-4 h-4" />
+                  保存关联
+                </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
+      {/* 创建新技能选项弹窗 */}
+      {showCreateSkillModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900">选择创建方式</h3>
               <button 
-                onClick={() => setShowSpModal(false)}
-                className="px-6 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+                onClick={() => setShowCreateSkillModal(false)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
               >
-                取消
+                <X className="w-5 h-5" />
               </button>
-              <button 
-                onClick={handleSaveSp}
-                className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 shadow-md hover:shadow-lg transition-all"
+            </div>
+            
+            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50">
+              {/* Option 1: AI 辅助创建 */}
+              <div 
+                onClick={() => {
+                  setShowCreateSkillModal(false);
+                  navigate('/expert/unified-chat', { state: { prefillText: '请帮我创建一个可以实现「市场营销」相关的skill。', prefillSkill: 'skill-creator' } });
+                }}
+                className="bg-white p-6 rounded-2xl border-2 border-transparent hover:border-blue-500 hover:shadow-lg cursor-pointer transition-all group relative overflow-hidden"
               >
-                保存设定
-              </button>
+                <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <ArrowRight className="w-5 h-5 text-blue-500" />
+                </div>
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white mb-4 shadow-md group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">AI 辅助创建 (推荐)</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  不知道怎么写代码？直接告诉 AI 你的需求，AI 将自动为你生成并调试技能脚本。
+                </p>
+              </div>
+
+              {/* Option 2: Python 脚本 */}
+              <div 
+                onClick={() => {
+                  // 这里后续可以路由到独立的技能代码编辑器
+                  setShowCreateSkillModal(false);
+                  alert('即将进入 Python 脚本编辑器 (待开发)');
+                }}
+                className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-md cursor-pointer transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mb-4 group-hover:bg-yellow-50 group-hover:text-yellow-600 transition-colors">
+                  <Terminal className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">Python 脚本</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  在安全的沙盒环境中编写 Python 代码，支持主流数据处理和机器学习库。
+                </p>
+              </div>
+
+              {/* Option 3: Node.js 脚本 */}
+              <div 
+                onClick={() => {
+                  setShowCreateSkillModal(false);
+                  alert('即将进入 Node.js 脚本编辑器 (待开发)');
+                }}
+                className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-md cursor-pointer transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mb-4 group-hover:bg-green-50 group-hover:text-green-600 transition-colors">
+                  <Code className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">Node.js 脚本</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  使用 JavaScript/TypeScript 编写处理逻辑，适合高并发的网络请求与数据转换。
+                </p>
+              </div>
+
+              {/* Option 4: API 接入 */}
+              <div 
+                onClick={() => {
+                  setShowCreateSkillModal(false);
+                  alert('即将进入 API 接入配置表单 (待开发)');
+                }}
+                className="bg-white p-6 rounded-2xl border border-gray-200 hover:border-gray-300 hover:shadow-md cursor-pointer transition-all group"
+              >
+                <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center text-gray-600 mb-4 group-hover:bg-purple-50 group-hover:text-purple-600 transition-colors">
+                  <FileJson className="w-6 h-6" />
+                </div>
+                <h4 className="text-lg font-bold text-gray-900 mb-2">API 接入</h4>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  将您已有的企业内部系统或第三方 SaaS 服务通过标准的 OpenAPI 协议接入。
+                </p>
+              </div>
             </div>
           </div>
         </div>

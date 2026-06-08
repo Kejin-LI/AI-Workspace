@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
@@ -88,6 +88,17 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
+}
+
+/* Instant Dark Mode Override via CSS Filter */
+html.dark-theme {
+  filter: invert(0.9) hue-rotate(180deg);
+  background-color: #1a1a1a;
+}
+html.dark-theme img,
+html.dark-theme video,
+html.dark-theme iframe {
+  filter: invert(1) hue-rotate(180deg);
 }
 
 /* Google Lab Specific Styles */

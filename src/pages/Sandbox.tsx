@@ -305,6 +305,7 @@ export function Sandbox() {
   // State Initialization
   const [activeTask, setActiveTask] = useState<any>(null);
   const [activeMode, setActiveMode] = useState<'guided' | 'battle' | 'compare' | 'free' | 'arena'>('guided');
+  const [showPluginModal, setShowPluginModal] = useState(false);
   const [isProMode, setIsProMode] = useState(location.state?.initialMode === 'pro');
   
   // Thinking Process State
@@ -880,6 +881,11 @@ export function Sandbox() {
 
   // Initial Welcome Message for Guided Mode
   useEffect(() => {
+    if (activeTask && (activeTask.title.includes('豆包线上数据采集') || activeTask.title.includes('Doubao Online Data Collection'))) {
+      // Show plugin modal whenever this task is active
+      setShowPluginModal(true);
+    }
+    
     if (activeMode === 'guided' && activeTask && messages.length === 0) {
       setMessages([
         {
@@ -2012,9 +2018,72 @@ export function Sandbox() {
     );
   };
 
+  const pluginModalNode = showPluginModal && (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-3xl shadow-2xl w-[600px] flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200 font-sans">
+        <div className="p-8 border-b border-gray-100 flex flex-col items-center text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">需要安装浏览器插件</h2>
+          <p className="text-gray-500 text-[15px] leading-relaxed">为了顺利完成豆包线上数据采集任务，您需要安装官方提供的浏览器插件，并在网页版豆包 APP 中进行作业。</p>
+        </div>
+        
+        <div className="p-8 bg-gray-50/50 flex-1 overflow-y-auto">
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">1</span>
+                安装步骤与网址
+              </h3>
+              <div className="bg-white p-4 rounded-xl border border-gray-200 text-[14px] text-gray-600 leading-relaxed shadow-sm">
+                <ol className="list-decimal list-inside space-y-2">
+                  <li>请前往 Chrome 应用商店或点击 <a href="#" className="text-blue-600 hover:underline">此链接</a> 下载插件。</li>
+                  <li>点击“添加至 Chrome”并确认安装。</li>
+                  <li>安装完成后，请访问 <a href="https://doubao.com" className="text-blue-600 hover:underline" target="_blank" rel="noopener noreferrer">doubao.com</a> 登录您的账号。</li>
+                  <li>在网页版中开启插件，即可开始采集作业。</li>
+                </ol>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs">2</span>
+                操作轨迹数据采集与隐私协议
+              </h3>
+              <div className="bg-white p-4 rounded-xl border border-gray-200 text-[14px] text-gray-600 leading-relaxed shadow-sm">
+                <p className="mb-2">
+                  <strong>数据采集说明：</strong> 在您使用插件进行标注作业期间，插件可能会采集您在目标网页上的操作轨迹数据（例如：点击、滚动、停留时间等），用于辅助分析任务质量和优化模型能力。
+                </p>
+                <p>
+                  <strong>隐私保护承诺：</strong> 我们承诺严格遵守数据隐私协议。采集的数据仅用于模型训练与质量评估，绝不涉及您的个人敏感信息、密码或其他非任务相关网页的浏览记录。详细信息请阅读 <a href="#" className="text-blue-600 hover:underline">《隐私保护协议》</a>。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-6 border-t border-gray-100 bg-white flex justify-end gap-3">
+          <button 
+            onClick={() => {
+              setShowPluginModal(false);
+              navigate('/expert');
+            }}
+            className="px-6 py-2.5 rounded-xl text-[15px] font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+          >稍后再说</button>
+          <button 
+            onClick={() => {
+              setShowPluginModal(false);
+              window.open('https://doubao.com', '_blank');
+            }}
+            className="px-6 py-2.5 rounded-xl text-[15px] font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-sm transition-colors"
+          >已安装，继续作业</button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (activeMode === 'guided') {
     return (
       <div className="h-full flex flex-row bg-white font-sans overflow-hidden">
+        {pluginModalNode}
         
         {/* Left Side: Chat & Input */}
         <div className={cn(
@@ -3843,6 +3912,9 @@ export function Sandbox() {
   // Fallback to Battle Mode (Original UI)
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col bg-gray-50 font-sans relative">
+      {/* Plugin Modal */}
+      {pluginModalNode}
+
       {/* Share Modal */}
       {showShareModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">

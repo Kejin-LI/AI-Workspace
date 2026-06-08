@@ -28,27 +28,27 @@ export const translations = {
         descBold2: '赢取丰厚回报',
         descEnd: '，共同定义智能未来。',
         ctaRequester: '我是数据需求方',
-        ctaExpert: '我是领域专家',
+        ctaExpert: '立即开始',
       },
       features: {
         title: '为什么选择',
         card1: {
-          title: 'AI 原生工作流',
-          desc: '工作台随任务而变。无论是法律审查还是创意写作，界面都会自动进化以最大化效率。',
+          title: '神仙打架的“圆桌辩论”',
+          desc: '厌倦了跟 AI 单聊？拉上几个顶尖模型和同行大牛，开启多角色同台竞技。在唇枪舌剑中榨出认知盲区，真理越辩越明，这才是智性恋的终极狂欢。',
         },
         card2: {
-          val: '2.5倍',
-          desc: '更高效率',
+          title: '1:1 培养数字分身',
+          desc: '还在亲力亲为？调教一个继承你“毒舌”和“挑剔”品味的专属替身。你负责喝茶收钱，分身替你全天候打工。',
         },
         card3: {
-          title: '全球人才',
-          desc: '连接来自 150+ 国家的专家。',
+          title: '硬核 Skill 军火库',
+          desc: '告别废话连篇的通用回答。按需装配专业领域的原子级技能包，无论写诉状、推公式还是抠细节，即插即用，武装到牙齿。',
         },
         card4: {
-          tag: '新功能',
-          title: '游戏化认证',
-          desc: '告别枯燥的简历。通过互动挑战、测验和沙箱模拟来证明您的技能。',
-          btn: '尝试挑战',
+          tag: '铁壁防线',
+          title: '团队专属知识堡垒',
+          desc: '把领域老炮儿们的隐性知识沉淀为资产。支持按团队构建私有知识库并附加变态级权限管控，你的独门秘籍，绝对烂在自家锅里。',
+          btn: '构建我的堡垒',
         },
       },
       marquee: {
@@ -270,7 +270,7 @@ export const translations = {
           desc: "Our workspace adapts to your task. Whether it's legal review or creative writing, the interface evolves to maximize your efficiency.",
         },
         card2: {
-          val: '2.5x',
+          title: '2.5x',
           desc: 'Higher Efficiency',
         },
         card3: {

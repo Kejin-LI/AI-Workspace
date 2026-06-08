@@ -10,7 +10,7 @@ import { mockFeed } from '../pages/Community';
 
 export function Header() {
   const { t } = useLanguage();
-  const { actions } = useHeaderActions();
+  const { actions, title, isRightPanelOpen } = useHeaderActions();
   const location = useLocation();
   const navigate = useNavigate();
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -123,10 +123,15 @@ export function Header() {
     
     // Expert Routes
     if (path.includes('/expert/workbench')) return t.expert.sidebar.workspace;
+    if (path.includes('/expert/unified-chat')) return '工作台';
     if (path.includes('/expert/leaderboard')) return '模型榜单';
     if (path.includes('/expert/labeling')) return t.expert.sidebar.labeling;
-    if (path.includes('/expert/community')) return t.expert.sidebar.community;
-    if (path.includes('/expert/knowledge') || path.includes('/notebook')) return '知识库';
+    if (path.includes('/expert/community')) {
+      if (location.search.includes('tab=skills')) return '技能商店';
+      if (location.search.includes('tab=avatars')) return '专家分身';
+      return '专家社区';
+    }
+    if (path.includes('/expert/knowledge') || path.includes('/notebook')) return '知识空间';
     if (path.includes('/expert/challenges')) return t.expert.sidebar.challenges;
     if (path.includes('/expert/profile')) return '个人中心';
     if (path.includes('/expert/sandbox')) return t.expert.sandbox.guidedMode;
@@ -136,9 +141,40 @@ export function Header() {
     return t.requester.sidebar.kickoff;
   };
 
+  const isUnifiedChat = location.pathname.includes('/expert/unified-chat');
+
+  // Custom chat page header logic (only show dynamic title, no other elements)
+  if (isUnifiedChat && title) {
+    const isWorkbenchHome = location.pathname === '/expert/workbench';
+    return (
+      <header className={`h-16 bg-white border-b border-gray-100 flex items-center justify-between px-6 sticky top-0 z-50 shrink-0 transition-all duration-300 ${isRightPanelOpen ? 'w-[calc(100%-600px)] border-r border-gray-200' : 'w-full'}`}>
+        <div className="flex items-center text-sm text-gray-500 truncate mr-4 min-w-0 flex-1">
+          {!isWorkbenchHome && (
+            <div className="flex items-center gap-3 w-full">
+              <button 
+                onClick={() => {
+                  // Dispatch custom event to tell UnifiedChat to reset state
+                  window.dispatchEvent(new CustomEvent('reset-unified-chat'));
+                }}
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors shrink-0 group"
+                title="返回新对话"
+              >
+                <ChevronLeft className="w-5 h-5 text-gray-500 group-hover:text-gray-900" />
+              </button>
+              <span className="font-semibold text-slate-800 text-[15px] truncate block flex-1">{title}</span>
+            </div>
+          )}
+        </div>
+        <div className="flex items-center gap-4 shrink-0">
+          {!isWorkbenchHome && actions}
+        </div>
+      </header>
+    );
+  }
+
   return (
     <header className={cn(
-      "h-16 flex items-center justify-between px-8 bg-transparent z-20 relative",
+      `h-16 flex items-center justify-between px-8 bg-transparent z-20 relative transition-all duration-300 ${isRightPanelOpen ? 'w-[calc(100%-600px)] border-r border-gray-200' : 'w-full'}`,
       location.pathname.includes('/expert/sandbox') ? "bg-white border-b border-gray-100 sticky top-0" : ""
     )}>
       {/* Breadcrumbs - Left Side */}
@@ -176,9 +212,9 @@ export function Header() {
            </div>
         ) : (
            <>
-             <span className="hover:text-gray-900 cursor-pointer">TuringArena</span>
+             <span className="hover:text-gray-900 cursor-pointer">Turing</span>
              <span className="mx-2">/</span>
-             <span className="font-medium text-gray-900">{getPageTitle()}</span>
+             {title ? title : <span className="font-medium text-gray-900">{getPageTitle()}</span>}
            </>
         )}
       </div>
@@ -188,7 +224,7 @@ export function Header() {
         {actions}
         
         {/* User Stats & Profile (Expert only) */}
-        {(location.pathname.startsWith('/expert') || location.pathname.startsWith('/notebook')) && (
+        {(location.pathname.startsWith('/expert') || location.pathname.startsWith('/notebook')) && !location.pathname.endsWith('/workbench') && (
           <div className="flex items-center gap-4">
             {location.pathname.includes('/expert/sandbox') && location.state?.mode !== 'free' && location.state?.mode !== 'arena' && location.state?.mode !== 'compare' && location.state?.mode !== 'roundtable' ? (
               <div className="flex items-center bg-white rounded-full px-4 py-1.5 h-9 shadow-sm border border-gray-100">
@@ -240,200 +276,8 @@ export function Header() {
                     )}
                   </div>
                 )}
-                <div className="relative" ref={earnPointsMenuRef}>
-                  <div 
-                    onClick={() => setShowEarnPointsMenu(!showEarnPointsMenu)}
-                    className="flex items-center bg-white rounded-full pl-1.5 pr-1.5 py-1 h-9 shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer group"
-                  >
-                    <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center shadow-inner mr-2">
-                      <Coins className="w-3.5 h-3.5 text-yellow-900" />
-                    </div>
-                    <span className="font-bold text-slate-900 text-sm mr-3 font-mono">12,450</span>
-                    <div className="bg-purple-100 text-purple-700 px-2.5 py-0.5 rounded-full text-xs font-bold group-hover:bg-purple-600 group-hover:text-white transition-colors">赚积分</div>
-                  </div>
-                  
-                  {/* Earn Points Dropdown Menu */}
-                  {showEarnPointsMenu && (
-                    <div className="absolute right-0 mt-2 w-[420px] bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                      <div className="px-4 py-2 border-b border-gray-50 mb-2">
-                        <h3 className="font-bold text-gray-900 text-sm">做任务，赚积分</h3>
-                        <p className="text-xs text-gray-500 mt-1">完成以下任务可获得丰厚积分奖励</p>
-                      </div>
-                      
-                      <div className="max-h-[60vh] overflow-y-auto custom-scrollbar px-2 space-y-1">
-                        {/* Task 1 */}
-                        <div className="p-2 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <Star className="w-4 h-4 text-blue-600 fill-blue-600/20" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="text-sm font-bold text-gray-900">参与挑战任务</h4>
-                              <span className="flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                                <Coins className="w-3 h-3 mr-0.5" />+2000
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p 
-                                className="text-xs text-gray-500 truncate mr-2"
-                                title="发现适合您专业技能的高价值AI挑战"
-                              >
-                                发现适合您专业技能的高价值AI挑战
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setShowEarnPointsMenu(false);
-                                  navigate('/expert');
-                                }}
-                                className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors shrink-0"
-                              >
-                                开始
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Task 2 */}
-                        <div className="p-2 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <User className="w-4 h-4 text-blue-600 fill-blue-600/20" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="text-sm font-bold text-gray-900">完善个人信息</h4>
-                              <span className="flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                                <Coins className="w-3 h-3 mr-0.5" />+1000
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p 
-                                className="text-xs text-gray-500 truncate mr-2"
-                                title="让更多科学家认识你"
-                              >
-                                让更多科学家认识你
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setShowEarnPointsMenu(false);
-                                  navigate('/expert/profile', { state: { activeTab: '身份与背书', scrollTo: 'resume-archive' } });
-                                }}
-                                className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors shrink-0"
-                              >
-                                开始
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Task 3 */}
-                        <div className="p-2 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <BookOpen className="w-4 h-4 text-blue-600 fill-blue-600/20" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="text-sm font-bold text-gray-900">导入文献到知识库</h4>
-                              <span className="flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                                <Coins className="w-3 h-3 mr-0.5" />+500
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p 
-                                className="text-xs text-gray-500 truncate mr-2"
-                                title="建立个人科研知识库"
-                              >
-                                建立个人科研知识库
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setShowEarnPointsMenu(false);
-                                  navigate('/expert/profile', { state: { activeTab: '内容与知识库', scrollTo: 'personal-knowledge-base' } });
-                                }}
-                                className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors shrink-0"
-                              >
-                                开始
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Task 4 */}
-                        <div className="p-2 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <Rocket className="w-4 h-4 text-blue-600 fill-blue-600/20" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="text-sm font-bold text-gray-900">用专业版模式提问</h4>
-                              <span className="flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                                <Coins className="w-3 h-3 mr-0.5" />+200
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p 
-                                className="text-xs text-gray-500 truncate mr-2"
-                                title="提供更精确、分析深入的学术回答"
-                              >
-                                提供更精确、分析深入的学术回答
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setShowEarnPointsMenu(false);
-                                  navigate('/expert/workbench', { state: { initialMode: 'pro' } });
-                                }}
-                                className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors shrink-0"
-                              >
-                                开始
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Task 5 */}
-                        <div className="p-2 hover:bg-gray-50 rounded-lg transition-colors flex items-start gap-3 group">
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0 mt-0.5">
-                            <Bell className="w-4 h-4 text-blue-600 fill-blue-600/20" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between mb-1">
-                              <h4 className="text-sm font-bold text-gray-900">发布经验到专家社区</h4>
-                              <span className="flex items-center text-xs font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
-                                <Coins className="w-3 h-3 mr-0.5" />+200
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <p 
-                                className="text-xs text-gray-500 truncate mr-2"
-                                title="获取领域研究热点与情报"
-                              >
-                                获取领域研究热点与情报
-                              </p>
-                              <button 
-                                onClick={() => {
-                                  setShowEarnPointsMenu(false);
-                                  navigate('/expert/community', { state: { activeTab: 'discuss' } });
-                                }}
-                                className="px-4 py-1 bg-blue-50 text-blue-600 rounded-full text-xs font-bold hover:bg-blue-100 transition-colors shrink-0"
-                              >
-                                开始
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
               </>
             )}
-            
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 p-[2px] cursor-pointer hover:scale-105 transition-transform shadow-sm">
-              <img 
-                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop" 
-                alt="User" 
-                className="w-full h-full rounded-full border-2 border-white object-cover"
-              />
-            </div>
           </div>
         )}
       </div>
