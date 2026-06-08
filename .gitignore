@@ -19,6 +19,10 @@ local-npm-cache/
 divs.txt
 temp_css.txt
 db.json
+output/
+
+# Legacy Node backend - replaced by Go, kept local only
+turing-arena-extension/turing-arena-backend/
 
 # Editor directories and files
 .vscode/*

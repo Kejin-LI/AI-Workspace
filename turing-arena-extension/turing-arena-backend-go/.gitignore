@@ -1,0 +1,7 @@
+# Go build output
+turing-arena-backend
+turing-arena-backend-go/turing-arena-backend
+*.exe
+
+# env (keys go through TCC, never commit)
+.env
