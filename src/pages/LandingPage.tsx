@@ -5,13 +5,16 @@ import { cn } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
 import { supabase } from '../lib/supabase';
 
+const DEMO_PHONE = '18800000000';
+const DEMO_PASSWORD = '888888';
+
 export function LandingPage() {
   const navigate = useNavigate();
   const { t, language, toggleLanguage } = useLanguage();
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'phone' | 'email'>('phone');
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
+  const [identifier, setIdentifier] = useState(DEMO_PHONE);
+  const [password, setPassword] = useState(DEMO_PASSWORD);
   const [error, setError] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
@@ -34,6 +37,18 @@ export function LandingPage() {
     setError('');
 
     try {
+      if (authMode === 'phone' && identifier === DEMO_PHONE && password === DEMO_PASSWORD) {
+        localStorage.setItem('admin_authenticated', 'true');
+        localStorage.setItem('taUser', JSON.stringify({
+          id: 'demo-user',
+          phone: `+86${DEMO_PHONE}`,
+          name: 'Demo User',
+        }));
+        setShowAuthModal(false);
+        navigate('/expert/unified-chat');
+        return;
+      }
+
       let credentials;
       if (authMode === 'phone') {
         if (!/^\d{11}$/.test(identifier)) {
@@ -113,8 +128,8 @@ export function LandingPage() {
               <button 
                 onClick={() => {
                   setShowAuthModal(false);
-                  setPassword('');
-                  setIdentifier('');
+                  setPassword(DEMO_PASSWORD);
+                  setIdentifier(DEMO_PHONE);
                   setError('');
                 }} 
                 className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-50 transition-colors"
@@ -128,7 +143,7 @@ export function LandingPage() {
               <button
                 type="button"
                 className={cn("pb-3 text-sm font-bold border-b-2 transition-colors relative top-[1px]", authMode === 'phone' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-800")}
-                onClick={() => { setAuthMode('phone'); setIdentifier(''); setError(''); }}
+                onClick={() => { setAuthMode('phone'); setIdentifier(DEMO_PHONE); setPassword(DEMO_PASSWORD); setError(''); }}
               >
                 手机号登录
               </button>
